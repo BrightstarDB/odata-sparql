@@ -89,20 +89,8 @@ namespace Microsoft.Data.OData.Metadata
         
         #region Internal methods
         #region ODataLib only
-#if !ODATALIB_QUERY && !ASTORIA_SERVER
-        /// <summary>
-        /// A method that determines whether a given model is a user model or one of the built-in core models
-        /// that can only used for primitive type resolution.
-        /// </summary>
-        /// <param name="model">The model to check.</param>
-        /// <returns>true if the <paramref name="model"/> is a user model; otherwise false.</returns>
-        internal static bool IsUserModel(this IEdmModel model)
-        {
-            DebugUtils.CheckNoExternalCallers();
-            Debug.Assert(model != null, "model != null");
-
-            return !(model is EdmCoreModel);
-        }
+#if  !ASTORIA_SERVER
+        
 
         /// <summary>
         /// Checks whether the provided <paramref name="clrType"/> is a supported primitive type.
@@ -188,197 +176,8 @@ namespace Microsoft.Data.OData.Metadata
             return true;
         }
 
-        /// <summary>
-        /// Checks if the <paramref name="baseType"/> primitive type is assignable to <paramref name="subtype"/> primitive type.
-        /// In other words, if <paramref name="subtype"/> is a subtype of <paramref name="baseType"/> or not.
-        /// </summary>
-        /// <param name="baseType">Type of the base type.</param>
-        /// <param name="subtype">Type of the sub type.</param>
-        /// <returns>true, if the <paramref name="baseType"/> is assignable to <paramref name="subtype"/>. Otherwise returns false.</returns>
-        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity", Justification = "Need to keep code together.")]
-        internal static bool IsAssignableFrom(this IEdmPrimitiveType baseType, IEdmPrimitiveType subtype)
-        {
-            DebugUtils.CheckNoExternalCallers();
-            Debug.Assert(baseType != null, "baseType != null");
-            Debug.Assert(subtype != null, "subtype != null");
 
-            if (baseType.IsEquivalentTo(subtype))
-            {
-                return true;
-            }
 
-            // Only spatial types are assignable
-            if (!baseType.IsSpatialType() || !subtype.IsSpatialType())
-            {
-                return false;
-            }
-
-            // For two spatial types, test for assignability
-            EdmPrimitiveTypeKind baseTypeKind = baseType.PrimitiveKind;
-            EdmPrimitiveTypeKind subTypeKind = subtype.PrimitiveKind;
-
-            switch (baseTypeKind)
-            {
-                case EdmPrimitiveTypeKind.Geography:
-                    return subTypeKind == EdmPrimitiveTypeKind.Geography ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyCollection ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyPolygon;
-
-                case EdmPrimitiveTypeKind.GeographyPoint:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyPoint;
-
-                case EdmPrimitiveTypeKind.GeographyLineString:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyLineString;
-
-                case EdmPrimitiveTypeKind.GeographyPolygon:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyPolygon;
-
-                case EdmPrimitiveTypeKind.GeographyCollection:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyCollection ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon;
-
-                case EdmPrimitiveTypeKind.GeographyMultiPolygon:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon;
-
-                case EdmPrimitiveTypeKind.GeographyMultiLineString:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString;
-
-                case EdmPrimitiveTypeKind.GeographyMultiPoint:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint;
-
-                case EdmPrimitiveTypeKind.Geometry:
-                    return subTypeKind == EdmPrimitiveTypeKind.Geometry ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryCollection ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryPolygon;
-
-                case EdmPrimitiveTypeKind.GeometryPoint:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryPoint;
-
-                case EdmPrimitiveTypeKind.GeometryLineString:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryLineString;
-
-                case EdmPrimitiveTypeKind.GeometryPolygon:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryPolygon;
-
-                case EdmPrimitiveTypeKind.GeometryCollection:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryCollection ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint ||
-                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon;
-
-                case EdmPrimitiveTypeKind.GeometryMultiPolygon:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon;
-
-                case EdmPrimitiveTypeKind.GeometryMultiLineString:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString;
-
-                case EdmPrimitiveTypeKind.GeometryMultiPoint:
-                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint;
-
-                default:
-                    throw new ODataException(Strings.General_InternalError(InternalErrorCodesCommon.EdmLibraryExtensions_IsAssignableFrom));
-            }
-        }
-
-        /// <summary>
-        /// Checks if the <paramref name="firstType"/> structured type and the <paramref name="secondType"/> structured type
-        /// have a common base type.
-        /// In other words, if <paramref name="secondType"/> is a subtype of <paramref name="firstType"/> or not.
-        /// </summary>
-        /// <param name="firstType">Type of the base type.</param>
-        /// <param name="secondType">Type of the sub type.</param>
-        /// <returns>The common base type or null if no common base type exists.</returns>
-        internal static IEdmStructuredType GetCommonBaseType(this IEdmStructuredType firstType, IEdmStructuredType secondType)
-        {
-            DebugUtils.CheckNoExternalCallers();
-            Debug.Assert(firstType != null, "firstType != null");
-            Debug.Assert(secondType != null, "secondType != null");
-
-            if (firstType.IsEquivalentTo(secondType))
-            {
-                return firstType;
-            }
-
-            IEdmStructuredType commonBaseType = firstType;
-            while (commonBaseType != null)
-            {
-                if (commonBaseType.IsAssignableFrom(secondType))
-                {
-                    return commonBaseType;
-                }
-
-                commonBaseType = commonBaseType.BaseType;
-            }
-
-            commonBaseType = secondType;
-            while (commonBaseType != null)
-            {
-                if (commonBaseType.IsAssignableFrom(firstType))
-                {
-                    return commonBaseType;
-                }
-
-                commonBaseType = commonBaseType.BaseType;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Checks if the <paramref name="firstType"/> primitive type and the <paramref name="secondType"/> primitive type
-        /// have a common base type.
-        /// In other words, if <paramref name="secondType"/> is a subtype of <paramref name="firstType"/> or not.
-        /// </summary>
-        /// <param name="firstType">Type of the base type.</param>
-        /// <param name="secondType">Type of the sub type.</param>
-        /// <returns>The common base type or null if no common base type exists.</returns>
-        internal static IEdmPrimitiveType GetCommonBaseType(this IEdmPrimitiveType firstType, IEdmPrimitiveType secondType)
-        {
-            DebugUtils.CheckNoExternalCallers();
-            Debug.Assert(firstType != null, "firstType != null");
-            Debug.Assert(secondType != null, "secondType != null");
-
-            if (firstType.IsEquivalentTo(secondType))
-            {
-                return firstType;
-            }
-
-            IEdmPrimitiveType commonBaseType = firstType;
-            while (commonBaseType != null)
-            {
-                if (commonBaseType.IsAssignableFrom(secondType))
-                {
-                    return commonBaseType;
-                }
-
-                commonBaseType = commonBaseType.BaseType();
-            }
-
-            commonBaseType = secondType;
-            while (commonBaseType != null)
-            {
-                if (commonBaseType.IsAssignableFrom(firstType))
-                {
-                    return commonBaseType;
-                }
-
-                commonBaseType = commonBaseType.BaseType();
-            }
-
-            return null;
-        }
 
         /// <summary>
         /// Returns the base type of a primitive type.
@@ -801,6 +600,210 @@ namespace Microsoft.Data.OData.Metadata
         #region ODataLib and Query project
 #if !ASTORIA_SERVER
         /// <summary>
+        /// A method that determines whether a given model is a user model or one of the built-in core models
+        /// that can only used for primitive type resolution.
+        /// </summary>
+        /// <param name="model">The model to check.</param>
+        /// <returns>true if the <paramref name="model"/> is a user model; otherwise false.</returns>
+        internal static bool IsUserModel(this IEdmModel model)
+        {
+            DebugUtils.CheckNoExternalCallers();
+            Debug.Assert(model != null, "model != null");
+
+            return !(model is EdmCoreModel);
+        }
+        /// <summary>
+        /// Checks if the <paramref name="baseType"/> primitive type is assignable to <paramref name="subtype"/> primitive type.
+        /// In other words, if <paramref name="subtype"/> is a subtype of <paramref name="baseType"/> or not.
+        /// </summary>
+        /// <param name="baseType">Type of the base type.</param>
+        /// <param name="subtype">Type of the sub type.</param>
+        /// <returns>true, if the <paramref name="baseType"/> is assignable to <paramref name="subtype"/>. Otherwise returns false.</returns>
+        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity", Justification = "Need to keep code together.")]
+        internal static bool IsAssignableFrom(this IEdmPrimitiveType baseType, IEdmPrimitiveType subtype)
+        {
+            DebugUtils.CheckNoExternalCallers();
+            Debug.Assert(baseType != null, "baseType != null");
+            Debug.Assert(subtype != null, "subtype != null");
+
+            if (baseType.IsEquivalentTo(subtype))
+            {
+                return true;
+            }
+
+            // Only spatial types are assignable
+            if (!baseType.IsSpatialType() || !subtype.IsSpatialType())
+            {
+                return false;
+            }
+
+            // For two spatial types, test for assignability
+            EdmPrimitiveTypeKind baseTypeKind = baseType.PrimitiveKind;
+            EdmPrimitiveTypeKind subTypeKind = subtype.PrimitiveKind;
+
+            switch (baseTypeKind)
+            {
+                case EdmPrimitiveTypeKind.Geography:
+                    return subTypeKind == EdmPrimitiveTypeKind.Geography ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyCollection ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyPolygon;
+
+                case EdmPrimitiveTypeKind.GeographyPoint:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyPoint;
+
+                case EdmPrimitiveTypeKind.GeographyLineString:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyLineString;
+
+                case EdmPrimitiveTypeKind.GeographyPolygon:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyPolygon;
+
+                case EdmPrimitiveTypeKind.GeographyCollection:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyCollection ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon;
+
+                case EdmPrimitiveTypeKind.GeographyMultiPolygon:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPolygon;
+
+                case EdmPrimitiveTypeKind.GeographyMultiLineString:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiLineString;
+
+                case EdmPrimitiveTypeKind.GeographyMultiPoint:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeographyMultiPoint;
+
+                case EdmPrimitiveTypeKind.Geometry:
+                    return subTypeKind == EdmPrimitiveTypeKind.Geometry ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryCollection ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryPolygon;
+
+                case EdmPrimitiveTypeKind.GeometryPoint:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryPoint;
+
+                case EdmPrimitiveTypeKind.GeometryLineString:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryLineString;
+
+                case EdmPrimitiveTypeKind.GeometryPolygon:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryPolygon;
+
+                case EdmPrimitiveTypeKind.GeometryCollection:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryCollection ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint ||
+                        subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon;
+
+                case EdmPrimitiveTypeKind.GeometryMultiPolygon:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPolygon;
+
+                case EdmPrimitiveTypeKind.GeometryMultiLineString:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiLineString;
+
+                case EdmPrimitiveTypeKind.GeometryMultiPoint:
+                    return subTypeKind == EdmPrimitiveTypeKind.GeometryMultiPoint;
+
+                default:
+                    throw new ODataException(Strings.General_InternalError(InternalErrorCodesCommon.EdmLibraryExtensions_IsAssignableFrom));
+            }
+        }
+
+        /// <summary>
+        /// Checks if the <paramref name="firstType"/> structured type and the <paramref name="secondType"/> structured type
+        /// have a common base type.
+        /// In other words, if <paramref name="secondType"/> is a subtype of <paramref name="firstType"/> or not.
+        /// </summary>
+        /// <param name="firstType">Type of the base type.</param>
+        /// <param name="secondType">Type of the sub type.</param>
+        /// <returns>The common base type or null if no common base type exists.</returns>
+        internal static IEdmStructuredType GetCommonBaseType(this IEdmStructuredType firstType, IEdmStructuredType secondType)
+        {
+            DebugUtils.CheckNoExternalCallers();
+            Debug.Assert(firstType != null, "firstType != null");
+            Debug.Assert(secondType != null, "secondType != null");
+
+            if (firstType.IsEquivalentTo(secondType))
+            {
+                return firstType;
+            }
+
+            IEdmStructuredType commonBaseType = firstType;
+            while (commonBaseType != null)
+            {
+                if (commonBaseType.IsAssignableFrom(secondType))
+                {
+                    return commonBaseType;
+                }
+
+                commonBaseType = commonBaseType.BaseType;
+            }
+
+            commonBaseType = secondType;
+            while (commonBaseType != null)
+            {
+                if (commonBaseType.IsAssignableFrom(firstType))
+                {
+                    return commonBaseType;
+                }
+
+                commonBaseType = commonBaseType.BaseType;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Checks if the <paramref name="firstType"/> primitive type and the <paramref name="secondType"/> primitive type
+        /// have a common base type.
+        /// In other words, if <paramref name="secondType"/> is a subtype of <paramref name="firstType"/> or not.
+        /// </summary>
+        /// <param name="firstType">Type of the base type.</param>
+        /// <param name="secondType">Type of the sub type.</param>
+        /// <returns>The common base type or null if no common base type exists.</returns>
+        internal static IEdmPrimitiveType GetCommonBaseType(this IEdmPrimitiveType firstType, IEdmPrimitiveType secondType)
+        {
+            DebugUtils.CheckNoExternalCallers();
+            Debug.Assert(firstType != null, "firstType != null");
+            Debug.Assert(secondType != null, "secondType != null");
+
+            if (firstType.IsEquivalentTo(secondType))
+            {
+                return firstType;
+            }
+
+            IEdmPrimitiveType commonBaseType = firstType;
+            while (commonBaseType != null)
+            {
+                if (commonBaseType.IsAssignableFrom(secondType))
+                {
+                    return commonBaseType;
+                }
+
+                commonBaseType = commonBaseType.BaseType();
+            }
+
+            commonBaseType = secondType;
+            while (commonBaseType != null)
+            {
+                if (commonBaseType.IsAssignableFrom(firstType))
+                {
+                    return commonBaseType;
+                }
+
+                commonBaseType = commonBaseType.BaseType();
+            }
+
+            return null;
+        }
+        /// <summary>
         /// Checks if the <paramref name="baseType"/> is assignable to <paramref name="subtype"/>.
         /// In other words, if <paramref name="subtype"/> is a subtype of <paramref name="baseType"/> or not.
         /// </summary>
@@ -1177,7 +1180,7 @@ namespace Microsoft.Data.OData.Metadata
 
         #region Private methods
         #region ODataLib only
-#if !ODATALIB_QUERY && !ASTORIA_SERVER
+#if !ASTORIA_SERVER
         /// <summary>
         /// Returns Collection item type name or null if the provided type name is not a collection.
         /// </summary>

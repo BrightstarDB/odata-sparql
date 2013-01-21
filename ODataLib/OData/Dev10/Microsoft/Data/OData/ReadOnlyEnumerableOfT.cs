@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System.Collections;
+
 namespace Microsoft.Data.OData
 {
     #region Namespaces
@@ -20,50 +22,34 @@ namespace Microsoft.Data.OData
     #endregion Namespaces
 
     /// <summary>
-    /// Implementation of IEnumerable&gt;T&lt; which is based on a List&gt;T&lt;
+    /// Implementation of IEnumerable which is based on another IEnumerable
     /// but only exposes readonly access to that collection. This class doesn't implement
     /// any other public interfaces or public API unlike most other IEnumerable implementations
     /// which also implement other public interfaces.
     /// </summary>
-    /// <typeparam name="T">The type of a single item in the enumeration.</typeparam>
-    internal sealed class ReadOnlyEnumerable<T> : ReadOnlyEnumerable, IEnumerable<T>
+    /// <typeparam name="T">The type of the items in the read-only enumerable.</typeparam>
+    internal class ReadOnlyEnumerable<T> : IEnumerable<T>
     {
         /// <summary>
-        /// The list of values to expose through IEnumerable.
+        /// The IEnumerable to wrap.
         /// </summary>
-        private readonly List<T> sourceList;
+        private IEnumerable<T> sourceEnumerable;
 
-        /// <summary>
-        /// Constructor which initializes the enumerable with an empty list storage.
-        /// </summary>
-        internal ReadOnlyEnumerable()
-            : this(new List<T>())
+        internal ReadOnlyEnumerable() : this(new T[0])
         {
-            DebugUtils.CheckNoExternalCallers();
+            
         }
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="sourceList">The list of values to wrap.</param>
-        internal ReadOnlyEnumerable(List<T> sourceList) : base(sourceList)
+        /// <param name="sourceEnumerable">The enumerable to wrap.</param>
+        internal ReadOnlyEnumerable(IEnumerable<T> sourceEnumerable)
         {
             DebugUtils.CheckNoExternalCallers();
-            Debug.Assert(sourceList != null, "sourceList != null");
+            Debug.Assert(sourceEnumerable != null, "sourceEnumerable != null");
 
-            this.sourceList = sourceList;
-        }
-
-        /// <summary>
-        /// The source list which holds the values in the enumeration.
-        /// </summary>
-        internal List<T> SourceList
-        {
-            get 
-            {
-                DebugUtils.CheckNoExternalCallers();
-                return this.sourceList; 
-            }
+            this.sourceEnumerable = sourceEnumerable;
         }
 
         /// <summary>
@@ -72,7 +58,16 @@ namespace Microsoft.Data.OData
         /// <returns>The enumerator object to use.</returns>
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return this.sourceList.GetEnumerator();
+            return this.sourceEnumerable.GetEnumerator();
+        }
+
+        /// <summary>
+        /// Returns the (non-generic) enumerator to iterate through the items.
+        /// </summary>
+        /// <returns>The enumerator object to use.</returns>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.sourceEnumerable.GetEnumerator();
         }
     }
 }

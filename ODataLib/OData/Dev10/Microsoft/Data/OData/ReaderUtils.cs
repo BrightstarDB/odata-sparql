@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System.Linq;
+
 namespace Microsoft.Data.OData
 {
     #region Namespaces
@@ -77,7 +79,7 @@ namespace Microsoft.Data.OData
                 throw new ODataException(Strings.ReaderUtils_EnumerableModified(collectionName));
             }
 
-            List<T> collectionList = readonlyCollection.SourceList;
+            List<T> collectionList = readonlyCollection.ToList();
             Debug.Assert(collectionList != null, "collectionList != null");
 
             return collectionList;

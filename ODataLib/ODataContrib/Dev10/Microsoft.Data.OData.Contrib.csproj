@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{9363f8ee-9f70-4dd5-aa21-97e40478507e}</ProjectGuid>
+    <ProjectGuid>{9363F8EE-9F70-4DD5-AA21-97E40478507E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Microsoft.Data.OData.Contrib</RootNamespace>
     <AssemblyName>Microsoft.Data.OData.Contrib</AssemblyName>
@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;ODATALIB_ASYNC;ODATALIB;ODATALIB_QUERY</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -64,7 +64,6 @@
     <Compile Include="Microsoft\Data\OData\Query\ODataQueryUtils.cs" />
     <Compile Include="Microsoft\Data\OData\Query\BinaryOperator.cs" />
     <Compile Include="Microsoft\Data\OData\Query\BinaryOperatorQueryToken.cs" />
-    <Compile Include="Microsoft\Data\OData\Query\BinaryOperatorKind.cs" />
     <Compile Include="Microsoft\Data\OData\Query\BinaryOperatorUriBuilder.cs" />
     <Compile Include="Microsoft\Data\OData\Query\BuiltInFunctions.cs" />
     <Compile Include="Microsoft\Data\OData\Query\BuiltInFunctionSignature.cs" />
@@ -100,7 +99,6 @@
     <Compile Include="Microsoft\Data\OData\Query\NavigationPropertyNode.cs" />
     <Compile Include="Microsoft\Data\OData\Query\SelectQueryToken.cs" />
     <Compile Include="Microsoft\Data\OData\Query\SingleValueFunctionCallQueryNode.cs" />
-    <Compile Include="Microsoft\Data\OData\Query\FunctionSignature.cs" />
     <Compile Include="Microsoft\Data\OData\Query\StarQueryToken.cs" />
     <Compile Include="Microsoft\Data\OData\Query\TypePromotionUtils.cs" />
     <Compile Include="Microsoft\Data\OData\Query\PropertyInfoExtensionMethods.cs" />
@@ -142,7 +140,6 @@
     <Compile Include="Microsoft\Data\OData\Query\QueryTokenKind.cs" />
     <Compile Include="Microsoft\Data\OData\Query\SegmentQueryToken.cs" />
     <Compile Include="Microsoft\Data\OData\Query\UnaryOperatorQueryToken.cs" />
-    <Compile Include="Microsoft\Data\OData\Query\UnaryOperatorKind.cs" />
     <Compile Include="Microsoft\Data\OData\Query\UriQueryConstants.cs" />
     <Compile Include="Microsoft\Data\OData\Query\UriQueryExpressionParser.cs" />
     <Compile Include="Microsoft\Data\OData\Query\UriQueryPathParser.cs" />

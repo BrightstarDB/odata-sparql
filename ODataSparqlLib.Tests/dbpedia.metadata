@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<edmx:Edmx xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx" Version="3.0">
+  <edmx:DataServices xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" m:DataServiceVersion="2.0">
+    <Schema xmlns="http://schemas.microsoft.com/ado/2009/11/edm" Namespace="DBPedia">
+      <Using Namespace="ODataSparqlLib.Annotations" Alias="Sparql"/>
+      <EntityType Name="Film">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.String" Nullable="false">
+          <ValueAnnotation Term="Sparql.IdentifierPrefix" String="http://dbpedia.org/resource/"/>
+        </Property>
+        <Property Name="Name" Type="Edm.String" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/name"/>
+        </Property>
+        <Property Name="Runtime" Type="Decimal" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/runtime"/>
+        </Property>
+        <NavigationProperty Name="Director" Relationship="DBPedia.Film_Director" FromRole="Film" ToRole ="Director">
+          <ValueAnnotation Term="Sparql.Property" String="http://dbpedia.org/ontology/director"/>
+        </NavigationProperty>
+        <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
+      </EntityType>
+      <EntityType Name="Person">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Name" Type="Edm.String" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
+        </Property>
+      </EntityType>
+      
+      <Association Name="Film_Director">
+        <End Role="Film" Type="DBPedia.Film" Multiplicity="*"/>
+        <End Role="Director" Type="DBPedia.Film" Multiplicity="1"/>
+      </Association>
+      
+      <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">
+        <EntitySet Name="Films" EntityType="DBPedia.Film"/>
+        <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
+        <AssociationSet Name="Film_Director" Association="DBPedia.Film_Director">
+          <End Role="Film" EntitySet="Films"/>
+          <End Role="Director" EntitySet="Persons"/>
+        </AssociationSet>
+      </EntityContainer>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>
