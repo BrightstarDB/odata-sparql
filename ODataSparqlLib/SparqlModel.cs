@@ -14,10 +14,9 @@ namespace ODataSparqlLib
         public List<string> SelectVariables { get; private set; }
         public Dictionary<string, string> VariableType { get; private set; } 
         public bool IsDescribe { get; set; }
-
         public string DescribeResource { get; private set; }
-
         public int? Limit { get; set; }
+        public GraphPattern CurrentGraphPattern { get; private set; }
 
         private int _variableCounter = 1;
 
@@ -26,6 +25,7 @@ namespace ODataSparqlLib
             RootGraphPattern = new GraphPattern();
             SelectVariables = new List<string>();
             VariableType = new Dictionary<string, string>();
+            CurrentGraphPattern = RootGraphPattern;
         }
 
         public string NextVariable()
@@ -85,7 +85,14 @@ namespace ODataSparqlLib
                 }
                 else
                 {
-                    handler.CreateFeedFromGraph(resultsGraph, VariableType.Values);
+                    if (IsDescribe)
+                    {
+                        if (SelectVariables.Count > 1)
+                        {
+                            throw new Exception("Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
+                        }
+                        handler.CreateFeedFromGraph(resultsGraph, VariableType[SelectVariables[0]]);
+                    }
                 }
             }
             else

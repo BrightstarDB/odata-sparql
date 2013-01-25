@@ -64,8 +64,55 @@ namespace ODataSparqlLib.Tests
             validator.AssertXPathValue("/atom:entry/atom:title", "");
             validator.AssertXPathValue("/atom:entry/atom:content/m:properties/d:Name", "Un Chien Andalou");
             validator.AssertXPathValue("/atom:entry/atom:content/m:properties/d:Runtime", "960.0");
+            Console.WriteLine(validator.ToString());
         }
 
+        [TestMethod]
+        [Ignore] // Currently fails because of an unimplemented part of the ODATA query lib
+        public void TestSinglePropertyNavigation()
+        {
+            const string odataQuery = "http://example.org/odata/Films('Un_Chien_Andalou')/Director";
+            var parsedQuery = QueryDescriptorQueryNode.ParseUri(
+                new Uri(odataQuery),
+                new Uri(_odataBase),
+                _dbpediaModel);
+            var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
+            sparqlGenerator.ProcessQuery(parsedQuery);
+            var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
+            Console.Write(validator.ToString());
+            validator.AssertRoot("atom:entry");
+           
+        }
+
+        [TestMethod]
+        public void TestSinglePropertyEq()
+        {
+            var parsedQuery = QueryDescriptorQueryNode.ParseUri(
+                new Uri("http://example.org/odata/Films?$filter=Name eq 'Un Chien Andalou'"),
+                new Uri(_odataBase),
+                _dbpediaModel);
+            var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:feed");
+        }
+
+        private XPathValidator GenerateAndExecuteSparql(QueryDescriptorQueryNode parsedQuery, SparqlMap sparqlMap)
+        {
+            var sparqlGenerator = new SparqlGenerator(sparqlMap, "en");
+            sparqlGenerator.ProcessQuery(parsedQuery);
+            var mockMessage = new Mock<IODataResponseMessage>();
+            var outputStream = new MemoryStream();
+            mockMessage.Setup(m => m.GetStream()).Returns(outputStream);
+            var feedGenerator = new ODataFeedGenerator(mockMessage.Object, sparqlMap, _odataBase);
+            Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
+            sparqlGenerator.SparqlQueryModel.Execute(_sparqlEndpoint, feedGenerator);
+            outputStream.Seek(0, SeekOrigin.Begin);
+            var validator = new XPathValidator(outputStream);
+            validator.AddNamespace("atom", "http://www.w3.org/2005/Atom");
+            validator.AddNamespace("d", "http://schemas.microsoft.com/ado/2007/08/dataservices");
+            validator.AddNamespace("m", "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata");
+            return validator;
+        }
     }
 
     class XPathValidator
@@ -104,6 +151,15 @@ namespace ODataSparqlLib.Tests
                 }
             }
             Assert.Fail("Evaluation of path '{0}' did not return a node with a value that matched the expected value '{1}'", xpath, expectedValue);
+        }
+
+        public override string ToString()
+        {
+            using (var writer = new StringWriter())
+            {
+                _doc.Save(writer);
+                return writer.ToString();
+            }
         }
     }
 }

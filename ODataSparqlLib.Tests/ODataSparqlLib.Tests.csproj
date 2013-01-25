@@ -81,6 +81,7 @@
     <None Include="App.config" />
     <None Include="dbpedia.metadata">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
   </ItemGroup>

@@ -213,6 +213,25 @@ namespace ODataSparqlLib
                 };
         }
 
+        public IEnumerable<PropertyMapping> GetAssociationPropertyMappings(string qualifiedTypeName)
+        {
+            var edmType = AssertEntityType(qualifiedTypeName);
+            foreach (var navigationProperty in edmType.NavigationProperties())
+            {
+                string propertyUri;
+                bool isInverse;
+                if (TryGetUriForNavigationProperty(qualifiedTypeName, navigationProperty.Name, out propertyUri,
+                                                   out isInverse))
+                {
+                    yield return new PropertyMapping
+                        {
+                            Name = navigationProperty.Name,
+                            Uri = propertyUri
+                        };
+                }
+            }
+        } 
+
         private IEdmEntityType AssertEntityType(string qualifiedTypeName)
         {
             var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;

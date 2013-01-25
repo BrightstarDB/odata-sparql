@@ -9,6 +9,7 @@ using Microsoft.Data.OData;
 using VDS.RDF;
 using VDS.RDF.Nodes;
 using VDS.RDF.Query;
+using VDS.RDF.Storage.Virtualisation;
 
 namespace ODataSparqlLib
 {
@@ -25,19 +26,33 @@ namespace ODataSparqlLib
             _baseUri = baseUri;
         }
 
-        public void CreateFeedFromGraph(IGraph resultsGraph, IEnumerable<string> entityTypes)
+        public void CreateFeedFromGraph(IGraph resultsGraph, string entityType)
         {
-            
-            
-            foreach (var entityType in entityTypes)
+            var msgWriter = new ODataMessageWriter(_request);
+            var feedWriter = msgWriter.CreateODataFeedWriter();
+            List<ODataEntry> entries = new List<ODataEntry>();
+
+            var typeUri = _map.GetUriForType(entityType);
+            if (!String.IsNullOrEmpty(typeUri))
             {
-                var typeUri = _map.GetUriForType(entityType);
-                if (!String.IsNullOrEmpty(typeUri))
+                var predNode = resultsGraph.CreateUriNode(UriFactory.Create(RdfConstants.RdfType));
+                var objNode = resultsGraph.CreateUriNode(UriFactory.Create(typeUri));
+                foreach (var instanceTriple in resultsGraph.GetTriplesWithPredicateObject(predNode, objNode))
                 {
-                    
+                    var instanceUri = (instanceTriple.Subject as IUriNode).Uri;
+                    entries.Add(CreateODataEntry(resultsGraph, instanceUri.ToString(), entityType));
                 }
             }
-            throw new NotImplementedException();
+
+            var feed = new ODataFeed {Count = entries.Count, Id = _baseUri + _map.GetTypeSet(entityType)};
+            feedWriter.WriteStart(feed);
+            foreach (var entry in entries)
+            {
+                feedWriter.WriteStart(entry);
+                feedWriter.WriteEnd();
+            }
+            feedWriter.WriteEnd();
+            feedWriter.Flush();
         }
 
         public void CreateFeedFromResultSet(SparqlResultSet resultSet)
@@ -49,11 +64,20 @@ namespace ODataSparqlLib
         {
             var msgWriter = new ODataMessageWriter(_request);
             var entryWriter = msgWriter.CreateODataEntryWriter();
+            var entry = CreateODataEntry(resultsGraph, entryResource, entryType);
+            entryWriter.WriteStart(entry);
+            entryWriter.WriteEnd();
+            entryWriter.Flush();
+        }
+
+        private ODataEntry CreateODataEntry(IGraph resultsGraph, string entryResource, string entryType)
+        {
             var idPrefix = _map.GetResourceUriPrefix(entryType);
             if (!entryResource.StartsWith(idPrefix))
             {
                 // Now we have a problem
-                throw new Exception("Cannot create entry feed for resource " + entryResource + ". Resource URI does not start with the expected prefix " + idPrefix);
+                throw new Exception("Cannot create entry feed for resource " + entryResource +
+                                    ". Resource URI does not start with the expected prefix " + idPrefix);
             }
             var resourceId = entryResource.Substring(idPrefix.Length);
             var odataLink = _baseUri + _map.GetTypeSet(entryType) + "('" + resourceId + "')";
@@ -82,11 +106,14 @@ namespace ODataSparqlLib
                     }
                 }
             }
+
+            entry.AssociationLinks =
+                _map.GetAssociationPropertyMappings(entryType)
+                    .Select(m => new ODataAssociationLink {Name = m.Name, Url = new Uri(odataLink + "/" + m.Name)});
             entry.Properties = properties;
-            entryWriter.WriteStart(entry);
-            entryWriter.WriteEnd();
-            entryWriter.Flush();
+            return entry;
         }
+
 
         private object GetValue(INode valueNode, IEdmTypeReference propertyType)
         {

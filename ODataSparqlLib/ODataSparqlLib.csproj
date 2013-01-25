@@ -57,6 +57,7 @@
     <Compile Include="GraphPattern.cs" />
     <Compile Include="IPatternItem.cs" />
     <Compile Include="PatternItemKind.cs" />
+    <Compile Include="RdfConstants.cs" />
     <Compile Include="SparqlGenerator.cs" />
     <Compile Include="SparqlMap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

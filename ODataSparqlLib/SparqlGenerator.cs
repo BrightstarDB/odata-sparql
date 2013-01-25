@@ -12,12 +12,14 @@ namespace ODataSparqlLib
     {
         private readonly SparqlMap _map;
         private SparqlModel _sparqlModel;
+        private string _defaultLanguageCode;
 
         public SparqlModel SparqlQueryModel { get { return _sparqlModel; } }
 
-        public SparqlGenerator(SparqlMap map)
+        public SparqlGenerator(SparqlMap map, string defaultLanguageCode= "")
         {
             _map = map;
+            _defaultLanguageCode = defaultLanguageCode;
         }
 
         public void ProcessQuery(QueryDescriptorQueryNode query)
@@ -31,11 +33,23 @@ namespace ODataSparqlLib
                 case QueryNodeKind.KeyLookup:
                     ProcessRoot(query.Query as KeyLookupQueryNode);
                     break;
+                case QueryNodeKind.Filter:
+                    var entityType = (query.Query as FilterQueryNode).ItemType;
+                    var instances = AssertInstancesVariable(entityType);
+                    ProcessFilter(query.Query as FilterQueryNode);
+                    _sparqlModel.AddSelectVariable(instances, entityType.FullName());
+                    _sparqlModel.IsDescribe = true;
+                    break;
                 default:
                     throw new NotImplementedException("No processing implemented for " + query.Query.Kind);
             }
         }
 
+        private void ProcessFilter(FilterQueryNode filterQuery)
+        {
+            var filterSparqlExpression = ProcessNode(filterQuery.Expression);
+            _sparqlModel.CurrentGraphPattern.AddFilterExpression(filterSparqlExpression.ToString());
+        }
 
         private void ProcessRoot(EntitySetQueryNode entitySet)
         {
@@ -83,7 +97,7 @@ namespace ODataSparqlLib
             {
                 case QueryNodeKind.Constant:
                     var constNode = queryNode as ConstantQueryNode;
-                    return constNode.Value;
+                    return ProcessConstant(constNode.Value);
                 case QueryNodeKind.Convert:
                     var convertNode = queryNode as ConvertQueryNode;
                     var sourceValue = ProcessNode(convertNode.Source);
@@ -92,8 +106,90 @@ namespace ODataSparqlLib
                         return sourceValue.ToString();
                     }
                     throw new NotImplementedException("Haven't yet implemented convert to types other than string");
+                case QueryNodeKind.BinaryOperator:
+                    var binaryOperatorNode = queryNode as BinaryOperatorQueryNode;
+                    var left = ProcessNode(binaryOperatorNode.Left);
+                    var right = ProcessNode(binaryOperatorNode.Right);
+                    return BindOperator(binaryOperatorNode, left, right);
+                case QueryNodeKind.PropertyAccess:
+                    return ProcessNode(queryNode as PropertyAccessQueryNode);
                 default:
                     throw new NotImplementedException("No support for " + queryNode.Kind);
+            }
+        }
+
+        private object ProcessConstant(object value)
+        {
+            if (value is string)
+            {
+                var stringValue =  "'" + value + "'"; // TODO: Need proper escaping in here
+                if (!String.IsNullOrEmpty(_defaultLanguageCode)) stringValue = stringValue + "@" + _defaultLanguageCode;
+                return stringValue;
+            }
+            throw new NotImplementedException("No SPARQL conversion defined for constant value of type " + value.GetType());
+        }
+
+        private object ProcessNode(PropertyAccessQueryNode propertyAccessQueryNode)
+        {
+            var srcVariable = AssertInstancesVariable(propertyAccessQueryNode.Source.TypeReference);
+            var propertyUri = _map.GetUriForProperty(propertyAccessQueryNode.Source.TypeReference.FullName(),
+                                                     propertyAccessQueryNode.Property.Name);
+            return "?" + AssertPropertyAccessVariable(srcVariable, propertyUri);
+        }
+
+        private string AssertInstancesVariable(IEdmTypeReference typeReference)
+        {
+            var typeUri = _map.GetUriForType(typeReference.FullName());
+            var existingVar = _sparqlModel.CurrentGraphPattern.TriplePatterns
+                        .Where(
+                            p => p.Subject is VariablePatternItem
+                                 && p.Object is UriPatternItem && p.Predicate is UriPatternItem &&
+                                 (p.Predicate as UriPatternItem).Uri.Equals(RdfConstants.RdfType) &&
+                                 (p.Object as UriPatternItem).Uri.Equals(typeUri))
+                        .Select(p => (p.Subject as VariablePatternItem).VariableName)
+                        .FirstOrDefault();
+            if (existingVar != null)
+            {
+                return existingVar;
+            }
+            var instancesVar = _sparqlModel.NextVariable();
+            _sparqlModel.CurrentGraphPattern.TriplePatterns.Add(
+                new TriplePattern(
+                    new VariablePatternItem(instancesVar),
+                    new UriPatternItem(RdfConstants.RdfType),
+                    new UriPatternItem(typeUri)
+                    ));
+            return instancesVar;
+        }
+
+        private string AssertPropertyAccessVariable(string srcVariable, string propertyTypeUri)
+        {
+            var existing = _sparqlModel.CurrentGraphPattern.TriplePatterns
+                                       .Where(
+                                           p => p.Subject is VariablePatternItem &&
+                                                p.Predicate is UriPatternItem &&
+                                                p.Object is VariablePatternItem &&
+                                                (p.Subject as VariablePatternItem).VariableName.Equals(srcVariable) &&
+                                                (p.Predicate as UriPatternItem).Uri.Equals(propertyTypeUri)
+                )
+                                       .Select(p => (p.Object as VariablePatternItem).VariableName).FirstOrDefault();
+            if (existing != null) return existing;
+            var propertyVar = _sparqlModel.NextVariable();
+            _sparqlModel.CurrentGraphPattern.TriplePatterns.Add(
+                new TriplePattern(new VariablePatternItem(srcVariable),
+                                  new UriPatternItem(propertyTypeUri),
+                                  new VariablePatternItem(propertyVar)));
+            return propertyVar;
+        }
+
+        private string BindOperator(BinaryOperatorQueryNode binaryOperatorNode, object left, object right)
+        {
+            switch (binaryOperatorNode.OperatorKind)
+            {
+                    case BinaryOperatorKind.Equal:
+                    return left + " = " + right;
+                default:
+                    throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);
             }
         }
     }
