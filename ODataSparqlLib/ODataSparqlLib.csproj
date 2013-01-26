@@ -40,10 +40,12 @@
       <HintPath>packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -55,7 +57,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GraphPattern.cs" />
+    <Compile Include="HttpDataResponseMessage.cs" />
     <Compile Include="IPatternItem.cs" />
+    <Compile Include="MimeParse.cs" />
+    <Compile Include="ODataSparqlHandler.cs" />
+    <Compile Include="ODataSparqlRequestHandler.cs" />
+    <Compile Include="ODataSparqlServiceConfiguration.cs" />
+    <Compile Include="ODataSparqlServiceConfigurationSection.cs" />
     <Compile Include="PatternItemKind.cs" />
     <Compile Include="RdfConstants.cs" />
     <Compile Include="SparqlGenerator.cs" />

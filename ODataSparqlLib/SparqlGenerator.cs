@@ -108,9 +108,7 @@ namespace ODataSparqlLib
                     throw new NotImplementedException("Haven't yet implemented convert to types other than string");
                 case QueryNodeKind.BinaryOperator:
                     var binaryOperatorNode = queryNode as BinaryOperatorQueryNode;
-                    var left = ProcessNode(binaryOperatorNode.Left);
-                    var right = ProcessNode(binaryOperatorNode.Right);
-                    return BindOperator(binaryOperatorNode, left, right);
+                    return BindOperator(binaryOperatorNode);
                 case QueryNodeKind.PropertyAccess:
                     return ProcessNode(queryNode as PropertyAccessQueryNode);
                 default:
@@ -120,15 +118,20 @@ namespace ODataSparqlLib
 
         private object ProcessConstant(object value)
         {
+            return value;
+        }
+
+        private string MakeSparqlConstant(object value, string languageCode = null)
+        {
             if (value is string)
             {
-                var stringValue =  "'" + value + "'"; // TODO: Need proper escaping in here
-                if (!String.IsNullOrEmpty(_defaultLanguageCode)) stringValue = stringValue + "@" + _defaultLanguageCode;
-                return stringValue;
+                var stringConstant = "'" + value + "'";
+                if (languageCode == null) languageCode = _defaultLanguageCode;
+                if (languageCode != null) stringConstant += "@" + languageCode;
+                return stringConstant;
             }
             throw new NotImplementedException("No SPARQL conversion defined for constant value of type " + value.GetType());
         }
-
         private object ProcessNode(PropertyAccessQueryNode propertyAccessQueryNode)
         {
             var srcVariable = AssertInstancesVariable(propertyAccessQueryNode.Source.TypeReference);
@@ -182,11 +185,17 @@ namespace ODataSparqlLib
             return propertyVar;
         }
 
-        private string BindOperator(BinaryOperatorQueryNode binaryOperatorNode, object left, object right)
+        private string BindOperator(BinaryOperatorQueryNode binaryOperatorNode)
         {
+            var left = binaryOperatorNode.Left is ConstantQueryNode
+                           ? MakeSparqlConstant((binaryOperatorNode.Left as ConstantQueryNode).Value)
+                           : ProcessNode(binaryOperatorNode.Left);
+            var right = binaryOperatorNode.Right is ConstantQueryNode
+                            ? MakeSparqlConstant((binaryOperatorNode.Right as ConstantQueryNode).Value)
+                            : ProcessNode(binaryOperatorNode.Right);
             switch (binaryOperatorNode.OperatorKind)
             {
-                    case BinaryOperatorKind.Equal:
+                case BinaryOperatorKind.Equal:
                     return left + " = " + right;
                 default:
                     throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);

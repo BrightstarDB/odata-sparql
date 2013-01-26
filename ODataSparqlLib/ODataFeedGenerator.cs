@@ -1,36 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Data.Edm;
 using Microsoft.Data.OData;
 using VDS.RDF;
 using VDS.RDF.Nodes;
 using VDS.RDF.Query;
-using VDS.RDF.Storage.Virtualisation;
 
 namespace ODataSparqlLib
 {
     public class ODataFeedGenerator
     {
-        private IODataResponseMessage _request;
-        private SparqlMap _map;
+        private readonly IODataResponseMessage _request;
+        private readonly SparqlMap _map;
         private readonly string _baseUri;
+        private readonly ODataMessageWriterSettings _writerSettings;
 
-        public ODataFeedGenerator(IODataResponseMessage requestMessage, SparqlMap entityMap, string baseUri)
+        public ODataFeedGenerator(IODataResponseMessage requestMessage, SparqlMap entityMap, string baseUri, ODataMessageWriterSettings messageWriterSettings)
         {
             _request = requestMessage;
             _map = entityMap;
             _baseUri = baseUri;
+            _writerSettings = messageWriterSettings;
         }
 
         public void CreateFeedFromGraph(IGraph resultsGraph, string entityType)
         {
-            var msgWriter = new ODataMessageWriter(_request);
+            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
             var feedWriter = msgWriter.CreateODataFeedWriter();
-            List<ODataEntry> entries = new List<ODataEntry>();
+            var entries = new List<ODataEntry>();
 
             var typeUri = _map.GetUriForType(entityType);
             if (!String.IsNullOrEmpty(typeUri))
@@ -62,7 +60,7 @@ namespace ODataSparqlLib
 
         public void CreateEntryFromGraph(IGraph resultsGraph, string entryResource, string entryType)
         {
-            var msgWriter = new ODataMessageWriter(_request);
+            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
             var entryWriter = msgWriter.CreateODataEntryWriter();
             var entry = CreateODataEntry(resultsGraph, entryResource, entryType);
             entryWriter.WriteStart(entry);
@@ -115,7 +113,7 @@ namespace ODataSparqlLib
         }
 
 
-        private object GetValue(INode valueNode, IEdmTypeReference propertyType)
+        private static object GetValue(INode valueNode, IEdmTypeReference propertyType)
         {
             switch (propertyType.Definition.TypeKind)
             {
@@ -142,7 +140,7 @@ namespace ODataSparqlLib
             }
         }
 
-        private object GetPrimitiveValue(IValuedNode valuedNode, IEdmPrimitiveType targetType, bool asNullable)
+        private static object GetPrimitiveValue(IValuedNode valuedNode, IEdmPrimitiveType targetType, bool asNullable)
         {
             // TODO: Some sort of cast to nullable when necessary
                 switch (targetType.PrimitiveKind)
@@ -172,7 +170,7 @@ namespace ODataSparqlLib
                 }
         }
 
-        private object GetPrimitiveValue(string value, IEdmPrimitiveType targetType, bool asNullable)
+        private static object GetPrimitiveValue(string value, IEdmPrimitiveType targetType, bool asNullable)
         {
             // TODO: Some sort of cast to nullable when necessary
             switch (targetType.PrimitiveKind)

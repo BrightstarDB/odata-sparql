@@ -16,8 +16,8 @@ namespace ODataSparqlLib
 {
     public class SparqlMap
     {
-        private IEdmModel _model;
         private string _defaultNamespace;
+        public IEdmModel Model { get; private set; }
 
         public SparqlMap(string edmxPath, string defaultNamespace)
         {
@@ -38,14 +38,14 @@ namespace ODataSparqlLib
 
         private void Initialize(IEdmModel metadata, string defaultNamespace)
         {
-            _model = metadata;
+            Model = metadata;
             _defaultNamespace = defaultNamespace;
         }
 
         public string GetUriForType(string qualifiedName)
         {
             string typeUri = null;
-            var edmType = _model.FindDeclaredType(qualifiedName);
+            var edmType = Model.FindDeclaredType(qualifiedName);
             if (edmType != null)
             {
                 typeUri = GetUriAnnotation(edmType);
@@ -55,7 +55,7 @@ namespace ODataSparqlLib
 
         private string GetStringAnnotationValue(IEdmVocabularyAnnotatable edmType, string annotationNamespace, string annotationName)
         {
-            var uriAnnotation = edmType.VocabularyAnnotations(_model).
+            var uriAnnotation = edmType.VocabularyAnnotations(Model).
                                             OfType<IEdmValueAnnotation>().
                                             FirstOrDefault(
                                                 a =>
@@ -71,7 +71,7 @@ namespace ODataSparqlLib
         }
         private string GetUriAnnotation(IEdmVocabularyAnnotatable edmType)
         {
-            var uriAnnotation = edmType.VocabularyAnnotations(_model).
+            var uriAnnotation = edmType.VocabularyAnnotations(Model).
                                             OfType<IEdmValueAnnotation>().
                                             FirstOrDefault(
                                                 a =>
@@ -88,7 +88,7 @@ namespace ODataSparqlLib
         public string GetUriForProperty(string qualifiedTypeName, string propertyName)
         {
             string propertyUri = null;
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType != null)
             {
                 var edmProperty = edmType.FindProperty(propertyName);
@@ -117,7 +117,7 @@ namespace ODataSparqlLib
 
         public bool TryGetUriForNavigationProperty(string qualifiedTypeName, string propertyName, out string propertyUri, out bool isInverse)
         {
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType != null)
             {
                 var edmProperty = edmType.FindProperty(propertyName);
@@ -146,7 +146,7 @@ namespace ODataSparqlLib
         public bool TryGetIdentifierPrefixForProperty(string qualifiedTypeName, string propertyName,
                                                    out string identifierPrefix)
         {
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType != null)
             {
                 var edmProperty = edmType.FindProperty(propertyName);
@@ -166,7 +166,7 @@ namespace ODataSparqlLib
 
         public string GetResourceUriPrefix(string qualifiedTypeName)
         {
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType == null)
             {
                 throw new Exception("Cannot find metadata for type " + qualifiedTypeName);
@@ -187,12 +187,12 @@ namespace ODataSparqlLib
 
         public string GetTypeSet(string qualifiedTypeName)
         {
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType == null)
             {
                 throw new Exception("Cannot find metadata for type " + qualifiedTypeName);
             }
-            var entitySet = _model.EntityContainers()
+            var entitySet = Model.EntityContainers()
                   .SelectMany(ec => ec.EntitySets().Where(es => es.ElementType.FullName().Equals(qualifiedTypeName)))
                   .FirstOrDefault();
             if (entitySet == null)
@@ -234,7 +234,7 @@ namespace ODataSparqlLib
 
         private IEdmEntityType AssertEntityType(string qualifiedTypeName)
         {
-            var edmType = _model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
+            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
             if (edmType == null)
             {
                 throw new Exception("Cannot find metadata for type " + qualifiedTypeName);

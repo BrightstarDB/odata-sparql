@@ -52,7 +52,7 @@ namespace ODataSparqlLib.Tests
             var mockMessage = new Mock<IODataResponseMessage>();
             var outputStream = new MemoryStream();
             mockMessage.Setup(m => m.GetStream()).Returns(outputStream);
-                var feedGenerator = new ODataFeedGenerator(mockMessage.Object, _dbpediaMap, _odataBase);
+                var feedGenerator = new ODataFeedGenerator(mockMessage.Object, _dbpediaMap, _odataBase, new ODataMessageWriterSettings{Indent = true});
             sparqlGenerator.SparqlQueryModel.Execute(_sparqlEndpoint, feedGenerator);
             outputStream.Seek(0, SeekOrigin.Begin);
             var validator= new XPathValidator(outputStream);
@@ -103,7 +103,7 @@ namespace ODataSparqlLib.Tests
             var mockMessage = new Mock<IODataResponseMessage>();
             var outputStream = new MemoryStream();
             mockMessage.Setup(m => m.GetStream()).Returns(outputStream);
-            var feedGenerator = new ODataFeedGenerator(mockMessage.Object, sparqlMap, _odataBase);
+            var feedGenerator = new ODataFeedGenerator(mockMessage.Object, sparqlMap, _odataBase, new ODataMessageWriterSettings{Indent = true});
             Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
             sparqlGenerator.SparqlQueryModel.Execute(_sparqlEndpoint, feedGenerator);
             outputStream.Seek(0, SeekOrigin.Begin);

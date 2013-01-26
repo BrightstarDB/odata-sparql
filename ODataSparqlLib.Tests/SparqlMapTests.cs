@@ -51,7 +51,7 @@ namespace ODataSparqlLib.Tests
         public void TestReadPropertyUriAnnotation()
         {
             var map = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
-            Assert.AreEqual("http://xmlns.com/foaf/0.1/name", map.GetUriForProperty("DBPedia.Film", "Name"));
+            Assert.AreEqual("http://dbpedia.org/property/name", map.GetUriForProperty("DBPedia.Film", "Name"));
         }
 
         [TestMethod]

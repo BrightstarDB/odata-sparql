@@ -46,7 +46,7 @@ namespace ODataSparqlLib.Tests
             //mock.Setup(m => m.Url).Returns(new Uri("http://example.org/odata/Films('Un_Chien_Andalou')"));
             //mock.Setup(m => m.Method).Returns("GET");
             mock.Setup(m => m.GetStream()).Returns(mockStream);
-            var generator = new ODataFeedGenerator(mock.Object, _dbpediaMap, "http://example.org/odata/");
+            var generator = new ODataFeedGenerator(mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings{Indent = true});
             generator.CreateEntryFromGraph(testGraph, film.Uri.ToString(), "DBPedia.Film");
             mockStream.Seek(0, SeekOrigin.Begin);
             var streamXml = XDocument.Load(mockStream);
