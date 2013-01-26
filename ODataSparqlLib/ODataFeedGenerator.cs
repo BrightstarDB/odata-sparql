@@ -39,7 +39,7 @@ namespace ODataSparqlLib
         /// </summary>
         /// <param name="resultsGraph">The RDF graph containing the SPARQL results</param>
         /// <param name="entityType">The fully qualified domain name for the type of entity to be written</param>
-        public void CreateFeedFromGraph(IGraph resultsGraph, string entityType)
+        public void CreateFeedFromGraph(IGraph resultsGraph, string entityType, SparqlModel originalQueryModel = null)
         {
             var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
             var feedWriter = msgWriter.CreateODataFeedWriter();
@@ -50,10 +50,35 @@ namespace ODataSparqlLib
             {
                 var predNode = resultsGraph.CreateUriNode(UriFactory.Create(RdfConstants.RdfType));
                 var objNode = resultsGraph.CreateUriNode(UriFactory.Create(typeUri));
-                foreach (var instanceTriple in resultsGraph.GetTriplesWithPredicateObject(predNode, objNode))
+                if (originalQueryModel == null || originalQueryModel.Ordering == null)
                 {
-                    var instanceUri = (instanceTriple.Subject as IUriNode).Uri;
-                    entries.Add(CreateODataEntry(resultsGraph, instanceUri.ToString(), entityType));
+                    // No sorting required, just iterate all instances
+                    foreach (var instanceTriple in resultsGraph.GetTriplesWithPredicateObject(predNode, objNode))
+                    {
+                        var instanceUri = (instanceTriple.Subject as IUriNode).Uri;
+                        entries.Add(CreateODataEntry(resultsGraph, instanceUri.ToString(), entityType));
+                    }
+                }
+                else
+                {
+                    // We need to apply the same sort criteria to this graph to ensure
+                    // that the ODATA results are properly sorted.
+                    // NOTE: This will only work if all the properties used in the original query
+                    // are present in the graph - this could be a problem with more complex traversals
+                    // and the query may instead need to be rewritten / regenerated to extract only
+                    // the required sort properties.
+                    originalQueryModel.IsDescribe = false;
+                    var resultsTable =
+                        resultsGraph.ExecuteQuery(originalQueryModel.GetSparqlRepresentation()) as SparqlResultSet;
+                    var targetVariable= originalQueryModel.SelectVariables[0];
+                    foreach (var result in resultsTable.Results)
+                    {
+                        var instanceUriNode = result[targetVariable] as IUriNode;
+                        if (instanceUriNode != null)
+                        {
+                            entries.Add(CreateODataEntry(resultsGraph, instanceUriNode.Uri.ToString(), entityType));
+                        }
+                    }
                 }
             }
 

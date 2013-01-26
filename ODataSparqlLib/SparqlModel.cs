@@ -99,7 +99,7 @@ namespace ODataSparqlLib
                             throw new Exception(
                                 "Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
                         }
-                        handler.CreateFeedFromGraph(resultsGraph, VariableType[SelectVariables[0]]);
+                        handler.CreateFeedFromGraph(resultsGraph, VariableType[SelectVariables[0]], this);
                     }
                 }
             }
