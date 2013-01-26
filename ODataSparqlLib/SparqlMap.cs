@@ -1,33 +1,43 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Data.Edm;
 using Microsoft.Data.Edm.Annotations;
+using Microsoft.Data.Edm.Csdl;
 using Microsoft.Data.Edm.Expressions;
-using Microsoft.Data.Edm.Library.Annotations;
 using Microsoft.Data.Edm.Validation;
 
 namespace ODataSparqlLib
 {
     public class SparqlMap
     {
-        private string _defaultNamespace;
-        public IEdmModel Model { get; private set; }
+        public const string AnnotationsNamespace = "ODataSparqlLib.Annotations";
+        private readonly NameMapping _defaultPropertyNameMapping;
+        private readonly string _defaultPropertyNamepsace;
+        private readonly NameMapping _defaultTypeNameMapping;
+        private readonly string _defaultTypeNamespace;
+        private Dictionary<string, PropertyMapping> _propertyUriMap;
+        private Dictionary<string, TypeMapping> _typeUriMap;
 
-        public SparqlMap(string edmxPath, string defaultNamespace)
+        public SparqlMap(
+            string edmxPath,
+            string defaultTypeNamespace, NameMapping typeNameMapping,
+            string defaultPropertyNamespace = null, NameMapping? propertyNameMapping = null)
         {
+            _defaultTypeNamespace = defaultTypeNamespace;
+            _defaultTypeNameMapping = typeNameMapping;
+            _defaultPropertyNamepsace = defaultPropertyNamespace ?? defaultTypeNamespace;
+            _defaultPropertyNameMapping = propertyNameMapping.HasValue ? propertyNameMapping.Value : typeNameMapping;
+
             using (var edmxStream = new FileStream(edmxPath, FileMode.Open))
             {
                 IEdmModel model;
                 IEnumerable<EdmError> errors;
-                if (Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out model, out errors))
+                if (EdmxReader.TryParse(new XmlTextReader(edmxStream), out model, out errors))
                 {
-                    Initialize(model, defaultNamespace);
+                    ReadModel(model);
                 }
                 else
                 {
@@ -36,107 +46,206 @@ namespace ODataSparqlLib
             }
         }
 
-        private void Initialize(IEdmModel metadata, string defaultNamespace)
+        public IEdmModel Model { get; private set; }
+
+        private void ReadModel(IEdmModel metadata)
         {
             Model = metadata;
-            _defaultNamespace = defaultNamespace;
+            _typeUriMap = new Dictionary<string, TypeMapping>();
+            _propertyUriMap = new Dictionary<string, PropertyMapping>();
+            foreach (IEdmSchemaElement schemaElement in Model.SchemaElements)
+            {
+                if (schemaElement is IEdmEntityType)
+                {
+                    ReadEntityType(schemaElement as IEdmEntityType);
+                }
+            }
+        }
+
+        private void ReadEntityType(IEdmEntityType entityType)
+        {
+            if (IsIgnored(entityType)) return;
+            var typeUri = GetUriMapping(entityType);
+            
+            var keyList = entityType.DeclaredKey.ToList();
+            if (keyList.Count != 1)
+            {
+                // Ignore this entity
+                // TODO: Log an error
+                return;
+            }
+            string identifierPrefix = GetStringAnnotationValue(keyList.First(), AnnotationsNamespace, "IdentifierPrefix");
+
+            _typeUriMap[entityType.FullName()] = new TypeMapping
+                {
+                    Uri = typeUri,
+                    IdentifierPrefix = identifierPrefix
+                };
+            foreach (IEdmProperty property in entityType.Properties())
+            {
+                ReadProperty(entityType, property);
+            }
+        }
+
+        private class TypeMapping
+        {
+            public string Uri { get; set; }
+            public string IdentifierPrefix { get; set; }
+        }
+
+        private void ReadProperty(IEdmEntityType entityType, IEdmProperty property)
+        {
+            string declaredPropertyName;
+            string entityPropertyName = entityType.FullName() + "." + property.Name;
+            if (property.DeclaringType is IEdmEntityType)
+            {
+                declaredPropertyName = (property.DeclaringType as IEdmEntityType).FullName() + "." + property.Name;
+            }
+            else
+            {
+                declaredPropertyName = entityPropertyName;
+            }
+
+            PropertyMapping mapping;
+            if (_propertyUriMap.TryGetValue(declaredPropertyName, out mapping))
+            {
+                _propertyUriMap[entityPropertyName] = mapping;
+            }
+            else
+            {
+                mapping = new PropertyMapping
+                    {
+                        Uri = GetUriMapping(property),
+                        IsInverse = GetBooleanAnnotationValue(property, AnnotationsNamespace, "IsInverse", false),
+                        IdentifierPrefix = GetStringAnnotationValue(property, AnnotationsNamespace, "IdentifierPrefix")
+                    };
+
+                _propertyUriMap[entityPropertyName] = mapping;
+                if (!declaredPropertyName.Equals(entityPropertyName))
+                {
+                    _propertyUriMap[declaredPropertyName] = mapping;
+                }
+            }
+        }
+
+
+        private string GetUriMapping(IEdmEntityType entityType)
+        {
+            string ret = GetStringAnnotationValue(entityType, AnnotationsNamespace, "Uri");
+            return String.IsNullOrEmpty(ret)
+                       ? ApplyNameMapping(_defaultTypeNameMapping, _defaultTypeNamespace, entityType.Name)
+                       : ret;
+        }
+
+        private string GetUriMapping(IEdmProperty property)
+        {
+            string ret = GetStringAnnotationValue(property, AnnotationsNamespace, "Uri");
+            return String.IsNullOrEmpty(ret)
+                       ? ApplyNameMapping(_defaultPropertyNameMapping, _defaultPropertyNamepsace, property.Name)
+                       : ret;
+        }
+
+        private static string ApplyNameMapping(NameMapping nameMappingKind, string mapNamespace, string name)
+        {
+            string mappedName = name;
+            switch (nameMappingKind)
+            {
+                case NameMapping.LowerCase:
+                    mappedName = name.ToLower();
+                    break;
+                case NameMapping.UpperCase:
+                    mappedName = name.ToUpper();
+                    break;
+                case NameMapping.LowerCamelCase:
+                    mappedName = Char.ToLower(name[0]) + name.Substring(1);
+                    break;
+                case NameMapping.UpperCamelCase:
+                    mappedName = Char.ToUpper(name[0]) + name.Substring(1);
+                    break;
+            }
+            return mapNamespace + mappedName;
+        }
+
+
+        private bool IsIgnored(IEdmVocabularyAnnotatable annotatable)
+        {
+            if (
+                annotatable.VocabularyAnnotations(Model)
+                           .OfType<IEdmValueAnnotation>()
+                           .Any(
+                               va =>
+                               va.Term.Namespace.Equals(AnnotationsNamespace) &&
+                               va.Term.Name.Equals("Ignore") &&
+                               va.Value.ExpressionKind == EdmExpressionKind.BooleanConstant &&
+                               (va.Value as IEdmBooleanConstantExpression).Value))
+            {
+                return true;
+            }
+            return false;
         }
 
         public string GetUriForType(string qualifiedName)
         {
-            string typeUri = null;
-            var edmType = Model.FindDeclaredType(qualifiedName);
-            if (edmType != null)
+            TypeMapping mapping;
+            if (_typeUriMap.TryGetValue(qualifiedName, out mapping))
             {
-                typeUri = GetUriAnnotation(edmType);
+                return mapping.Uri;
             }
-            return typeUri ?? MakeUriFromQualifiedName(qualifiedName);
+            return null;
         }
 
-        private string GetStringAnnotationValue(IEdmVocabularyAnnotatable edmType, string annotationNamespace, string annotationName)
+        private string GetStringAnnotationValue(IEdmVocabularyAnnotatable annotatable, string annotationNamespace,
+                                                string annotationName)
         {
-            var uriAnnotation = edmType.VocabularyAnnotations(Model).
-                                            OfType<IEdmValueAnnotation>().
-                                            FirstOrDefault(
-                                                a =>
-                                                a.Term.Namespace.Equals(annotationNamespace) &&
-                                                a.Term.Name.Equals(annotationName) &&
-                                                a.Value.ExpressionKind == EdmExpressionKind.StringConstant);
-            if (uriAnnotation != null)
-            {
-                return (uriAnnotation.Value as IEdmStringConstantExpression).Value;
-            }
-            return null;
-            
+            IEdmValueAnnotation annotation = annotatable.VocabularyAnnotations(Model).
+                                                     OfType<IEdmValueAnnotation>().
+                                                     FirstOrDefault(
+                                                         a =>
+                                                         a.Term.Namespace.Equals(annotationNamespace) &&
+                                                         a.Term.Name.Equals(annotationName) &&
+                                                         a.Value.ExpressionKind == EdmExpressionKind.StringConstant);
+            return annotation != null ? (annotation.Value as IEdmStringConstantExpression).Value : null;
         }
-        private string GetUriAnnotation(IEdmVocabularyAnnotatable edmType)
+
+        private bool? GetBooleanAnnotationValue(IEdmVocabularyAnnotatable annotatable,
+                                                 string annotationNamespace, string annotaionName)
         {
-            var uriAnnotation = edmType.VocabularyAnnotations(Model).
-                                            OfType<IEdmValueAnnotation>().
-                                            FirstOrDefault(
-                                                a =>
-                                                a.Term.Namespace.Equals("ODataSparqlLib.Annotations") &&
-                                                a.Term.Name.Equals("Uri") &&
-                                                a.Value.ExpressionKind == EdmExpressionKind.StringConstant);
-            if (uriAnnotation != null)
-            {
-                return (uriAnnotation.Value as IEdmStringConstantExpression).Value;
-            }
-            return null;
+            var annotation = annotatable.VocabularyAnnotations(Model)
+                                        .OfType<IEdmValueAnnotation>()
+                                        .FirstOrDefault(
+                                            a => a.Value.ExpressionKind == EdmExpressionKind.BooleanConstant &&
+                                                 a.Term.Namespace.Equals(annotationNamespace) &&
+                                                 a.Term.Name.Equals(annotaionName));
+            return annotation != null
+                       ? (annotation.Value as IEdmBooleanConstantExpression).Value
+                       : (bool?)null;
+        }
+
+        private bool GetBooleanAnnotationValue(IEdmVocabularyAnnotatable annotatable,
+                                               string annotationNamespace, string annotationName, bool defaultValue)
+        {
+            var ret = GetBooleanAnnotationValue(annotatable, annotationNamespace, annotationName);
+            return ret.HasValue ? ret.Value : defaultValue;
         }
 
         public string GetUriForProperty(string qualifiedTypeName, string propertyName)
         {
-            string propertyUri = null;
-            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
-            if (edmType != null)
-            {
-                var edmProperty = edmType.FindProperty(propertyName);
-                if (edmProperty != null)
-                {
-                    propertyUri = GetUriAnnotation(edmProperty);
-                }
-            }
-            return propertyUri ?? _defaultNamespace + propertyName;
+            string key = qualifiedTypeName + "." + propertyName;
+            PropertyMapping mapping;
+            return _propertyUriMap.TryGetValue(key, out mapping) ? mapping.Uri : null;
         }
 
-        private string MakeUriFromQualifiedName(string qualifiedName)
-        {
-            if (String.IsNullOrEmpty(qualifiedName))
-            {
-                throw new ArgumentException("Parameter must not be NULL or an empty string", "qualifiedName");
-            }
-            // Might be good to make this logic pluggable
-            if (qualifiedName.Contains("."))
-            {
-                string name = qualifiedName.Substring(qualifiedName.LastIndexOf('.') + 1);
-                return _defaultNamespace + name;
-            }
-            return _defaultNamespace + qualifiedName;
-        }
 
-        public bool TryGetUriForNavigationProperty(string qualifiedTypeName, string propertyName, out string propertyUri, out bool isInverse)
+        public bool TryGetUriForNavigationProperty(string qualifiedTypeName, string propertyName, out string propertyUri,
+                                                   out bool isInverse)
         {
-            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
-            if (edmType != null)
+            string key = qualifiedTypeName + "." + propertyName;
+            PropertyMapping mapping;
+            if (_propertyUriMap.TryGetValue(key, out mapping))
             {
-                var edmProperty = edmType.FindProperty(propertyName);
-                if (edmProperty.PropertyKind == EdmPropertyKind.Navigation)
-                {
-                    propertyUri= GetStringAnnotationValue(edmProperty, "ODataSparqlLib.Annotations", "Property");
-                    if (!String.IsNullOrEmpty(propertyUri))
-                    {
-                        isInverse = false;
-                        return true;
-                    }
-                    propertyUri = GetStringAnnotationValue(edmProperty, "ODataSparqlLib.Annotations",
-                                                           "InverseProperty");
-                    if (!String.IsNullOrEmpty(propertyUri))
-                    {
-                        isInverse = true;
-                        return true;
-                    }
-                }
+                propertyUri = mapping.Uri;
+                isInverse = mapping.IsInverse;
+                return true;
             }
             propertyUri = null;
             isInverse = false;
@@ -144,21 +253,15 @@ namespace ODataSparqlLib
         }
 
         public bool TryGetIdentifierPrefixForProperty(string qualifiedTypeName, string propertyName,
-                                                   out string identifierPrefix)
+                                                      out string identifierPrefix)
         {
-            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
-            if (edmType != null)
+            string key = qualifiedTypeName + "." + propertyName;
+            PropertyMapping mapping;
+            if (_propertyUriMap.TryGetValue(key, out mapping) &&
+                !String.IsNullOrEmpty(mapping.IdentifierPrefix))
             {
-                var edmProperty = edmType.FindProperty(propertyName);
-                if (edmProperty != null && edmProperty.PropertyKind == EdmPropertyKind.Structural)
-                {
-                    identifierPrefix = GetStringAnnotationValue(edmProperty, "ODataSparqlLib.Annotations",
-                                                                "IdentifierPrefix");
-                    if (!string.IsNullOrEmpty(identifierPrefix))
-                    {
-                        return true;
-                    }
-                }
+                identifierPrefix = mapping.IdentifierPrefix;
+                return true;
             }
             identifierPrefix = null;
             return false;
@@ -166,23 +269,12 @@ namespace ODataSparqlLib
 
         public string GetResourceUriPrefix(string qualifiedTypeName)
         {
-            var edmType = Model.FindDeclaredType(qualifiedTypeName) as IEdmEntityType;
-            if (edmType == null)
+            TypeMapping mapping;
+            if (_typeUriMap.TryGetValue(qualifiedTypeName, out mapping))
             {
-                throw new Exception("Cannot find metadata for type " + qualifiedTypeName);
+                return mapping.IdentifierPrefix;
             }
-            var keyProperties = edmType.DeclaredKey.ToList();
-            if (keyProperties.Count != 1)
-            {
-                throw new Exception("Cannot currently handle entities with composite keys");
-            }
-            var identifierPrefix = GetStringAnnotationValue(keyProperties.First(), "ODataSparqlLib.Annotations",
-                                                                "IdentifierPrefix");
-            if (String.IsNullOrEmpty(identifierPrefix))
-            {
-                throw new Exception("No IdentifierPrefix declaration found on key property.");
-            }
-            return identifierPrefix;
+            return null;
         }
 
         public string GetTypeSet(string qualifiedTypeName)
@@ -192,9 +284,12 @@ namespace ODataSparqlLib
             {
                 throw new Exception("Cannot find metadata for type " + qualifiedTypeName);
             }
-            var entitySet = Model.EntityContainers()
-                  .SelectMany(ec => ec.EntitySets().Where(es => es.ElementType.FullName().Equals(qualifiedTypeName)))
-                  .FirstOrDefault();
+            IEdmEntitySet entitySet = Model.EntityContainers()
+                                           .SelectMany(
+                                               ec =>
+                                               ec.EntitySets()
+                                                 .Where(es => es.ElementType.FullName().Equals(qualifiedTypeName)))
+                                           .FirstOrDefault();
             if (entitySet == null)
             {
                 throw new Exception("Cannot find entity set for type " + qualifiedTypeName);
@@ -202,35 +297,41 @@ namespace ODataSparqlLib
             return entitySet.Name;
         }
 
-        public IEnumerable<PropertyMapping> GetStructuralPropertyMappings(string qualifiedTypeName)
+        public IEnumerable<PropertyInfo> GetStructuralPropertyMappings(string qualifiedTypeName)
         {
             var edmType = AssertEntityType(qualifiedTypeName);
-            return from structuralProperty in edmType.StructuralProperties() let propertyTypeUri = GetUriForProperty(qualifiedTypeName, structuralProperty.Name) select new PropertyMapping
+            foreach (var structuralProperty in edmType.StructuralProperties())
+            {
+                PropertyMapping propertyMapping;
+                if (_propertyUriMap.TryGetValue(qualifiedTypeName + "." + structuralProperty.Name, out propertyMapping))
                 {
-                    Name = structuralProperty.Name,
-                    Uri = propertyTypeUri,
-                    PropertyType = structuralProperty.Type
-                };
+                    yield return new PropertyInfo
+                        {
+                            Name = structuralProperty.Name,
+                            PropertyType = structuralProperty.Type,
+                            Uri = propertyMapping.Uri
+                        };
+                }
+            }
         }
 
-        public IEnumerable<PropertyMapping> GetAssociationPropertyMappings(string qualifiedTypeName)
+        public IEnumerable<PropertyInfo> GetAssociationPropertyMappings(string qualifiedTypeName)
         {
             var edmType = AssertEntityType(qualifiedTypeName);
             foreach (var navigationProperty in edmType.NavigationProperties())
             {
-                string propertyUri;
-                bool isInverse;
-                if (TryGetUriForNavigationProperty(qualifiedTypeName, navigationProperty.Name, out propertyUri,
-                                                   out isInverse))
+                PropertyMapping propertyMapping;
+                if (_propertyUriMap.TryGetValue(qualifiedTypeName +"."+ navigationProperty.Name, out propertyMapping))
                 {
-                    yield return new PropertyMapping
+                    yield return new PropertyInfo
                         {
                             Name = navigationProperty.Name,
-                            Uri = propertyUri
+                            Uri = propertyMapping.Uri,
+                            IsInverse = propertyMapping.IsInverse
                         };
                 }
             }
-        } 
+        }
 
         private IEdmEntityType AssertEntityType(string qualifiedTypeName)
         {
@@ -241,12 +342,12 @@ namespace ODataSparqlLib
             }
             return edmType;
         }
-    }
 
-    public class PropertyMapping
-    {
-        public string Name { get; set; }
-        public string Uri { get; set; }
-        public IEdmTypeReference PropertyType { get; set; }
+        private class PropertyMapping
+        {
+            public string Uri { get; set; }
+            public string IdentifierPrefix { get; set; }
+            public bool IsInverse { get; set; }
+        }
     }
 }

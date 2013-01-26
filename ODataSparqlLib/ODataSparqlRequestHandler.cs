@@ -7,11 +7,11 @@ namespace ODataSparqlLib
 {
     internal class ODataSparqlRequestHandler
     {
-        private readonly ODataSparqlServiceConfiguration _config;
+        private readonly ODataSparqlServiceSettings _config;
 
-        public ODataSparqlRequestHandler(ODataSparqlServiceConfiguration serviceConfiguration)
+        public ODataSparqlRequestHandler(ODataSparqlServiceSettings serviceSettings)
         {
-            _config = serviceConfiguration;
+            _config = serviceSettings;
         }
 
         public void ProcessRequest(HttpContext context, Uri serviceBaseUri)

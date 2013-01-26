@@ -27,7 +27,8 @@ namespace ODataSparqlLib.Tests
                 Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out _dbpediaModel,
                                                             out errors);
             }
-            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/",
+                NameMapping.Unchanged);
         }
 
         [TestMethod]

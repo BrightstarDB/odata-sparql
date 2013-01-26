@@ -22,7 +22,7 @@ namespace ODataSparqlLib.Tests
                 Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out _dbpediaModel,
                                                             out errors);
             }
-            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/", NameMapping.Unchanged);
         }
 
         [TestMethod]
@@ -58,6 +58,39 @@ namespace ODataSparqlLib.Tests
             Assert.IsNotNull(dbpediaGenerator.SparqlQueryModel.DescribeResource);
             Assert.AreEqual("http://dbpedia.org/resource/Un_Chien_Andalou", dbpediaGenerator.SparqlQueryModel.DescribeResource);
             Assert.AreEqual("DBPedia.Film", dbpediaGenerator.SparqlQueryModel.GetEntityType("http://dbpedia.org/resource/Un_Chien_Andalou"));
+        }
+
+        [TestMethod]
+        public void TestTop()
+        {
+            var generator = new SparqlGenerator(_dbpediaMap);
+            var queryDescriptor = QueryDescriptorQueryNode.ParseUri(
+                new Uri("http://example.org/odata/Films?$top=2"),
+                new Uri("http://example.org/odata/"), _dbpediaModel);
+            generator.ProcessQuery(queryDescriptor);
+            var sparql = generator.SparqlQueryModel;
+            Assert.IsNotNull(sparql);
+            Assert.IsTrue(sparql.IsDescribe);
+            Assert.AreEqual(2, sparql.Limit);
+        }
+
+        [TestMethod]
+        public void TestOrderByProperty()
+        {
+            var generator = new SparqlGenerator(_dbpediaMap);
+            var queryDescriptor = QueryDescriptorQueryNode.ParseUri(
+                new Uri("http://example.org/odata/Places?$orderby=PopulationTotal&$top=20"),
+                new Uri("http://example.org/odata/"), _dbpediaModel);
+            generator.ProcessQuery(queryDescriptor);
+            var sparql = generator.SparqlQueryModel;
+            Assert.IsNotNull(sparql);
+            Assert.IsTrue(sparql.IsDescribe);
+            Assert.AreEqual(20, sparql.Limit);
+            Assert.IsNotNull(sparql.Ordering);
+            Assert.IsTrue(sparql.Ordering.IsSimple);
+            Assert.AreEqual("v2", sparql.Ordering.Variable);
+            Assert.IsNull(sparql.Ordering.ThenBy);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
         }
     }
 }

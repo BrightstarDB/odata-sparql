@@ -1,23 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using VDS.RDF;
 using VDS.RDF.Query;
 
 namespace ODataSparqlLib
 {
     public class SparqlModel
     {
-        public GraphPattern RootGraphPattern { get; private set; }
-        public List<string> SelectVariables { get; private set; }
-        public Dictionary<string, string> VariableType { get; private set; } 
-        public bool IsDescribe { get; set; }
-        public string DescribeResource { get; private set; }
-        public int? Limit { get; set; }
-        public GraphPattern CurrentGraphPattern { get; private set; }
-
         private int _variableCounter = 1;
 
         public SparqlModel()
@@ -28,12 +18,21 @@ namespace ODataSparqlLib
             CurrentGraphPattern = RootGraphPattern;
         }
 
+        public GraphPattern RootGraphPattern { get; private set; }
+        public List<string> SelectVariables { get; private set; }
+        public Dictionary<string, string> VariableType { get; private set; }
+        public bool IsDescribe { get; set; }
+        public string DescribeResource { get; private set; }
+        public int? Limit { get; set; }
+        public ISparqlOrdering Ordering { get; set; }
+        public GraphPattern CurrentGraphPattern { get; private set; }
+
         public string NextVariable()
         {
             return "v" + (_variableCounter++);
         }
 
-        
+
         public void AddSelectVariable(string variableName, string entityType)
         {
             if (!SelectVariables.Contains(variableName))
@@ -49,11 +48,11 @@ namespace ODataSparqlLib
             {
                 return String.Format("DESCRIBE <{0}>", DescribeResource);
             }
-            StringBuilder queryBuilder= new StringBuilder();
+            var queryBuilder = new StringBuilder();
             if (SelectVariables.Count > 0)
             {
                 queryBuilder.Append(IsDescribe ? "DESCRIBE " : "SELECT ");
-                foreach (var sv in SelectVariables)
+                foreach (string sv in SelectVariables)
                 {
                     queryBuilder.AppendFormat("?{0} ", sv);
                 }
@@ -65,6 +64,14 @@ namespace ODataSparqlLib
             queryBuilder.Append("WHERE { ");
             queryBuilder.Append(RootGraphPattern.GetSparqlRepresentation());
             queryBuilder.Append("} ");
+
+            if (Ordering != null)
+            {
+                queryBuilder.Append("ORDER BY ");
+                queryBuilder.Append(Ordering.GetSparqlRepresentation());
+                queryBuilder.Append(" ");
+            }
+
             if (Limit.HasValue)
             {
                 queryBuilder.AppendFormat("LIMIT {0} ", Limit);
@@ -76,8 +83,8 @@ namespace ODataSparqlLib
         {
             if (IsDescribe)
             {
-                var query = this.GetSparqlRepresentation();
-                var resultsGraph = endpoint.QueryWithResultGraph(query);
+                string query = GetSparqlRepresentation();
+                IGraph resultsGraph = endpoint.QueryWithResultGraph(query);
                 if (!String.IsNullOrEmpty(DescribeResource))
                 {
                     // Create ODATA entry payload for single resource
@@ -89,7 +96,8 @@ namespace ODataSparqlLib
                     {
                         if (SelectVariables.Count > 1)
                         {
-                            throw new Exception("Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
+                            throw new Exception(
+                                "Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
                         }
                         handler.CreateFeedFromGraph(resultsGraph, VariableType[SelectVariables[0]]);
                     }
@@ -97,7 +105,7 @@ namespace ODataSparqlLib
             }
             else
             {
-                var resultSet = endpoint.QueryWithResultSet(this.GetSparqlRepresentation());
+                SparqlResultSet resultSet = endpoint.QueryWithResultSet(GetSparqlRepresentation());
                 handler.CreateFeedFromResultSet(resultSet);
             }
         }
@@ -112,6 +120,54 @@ namespace ODataSparqlLib
         public string GetEntityType(string variableOrResource)
         {
             return VariableType[variableOrResource];
+        }
+    }
+
+    public interface ISparqlOrdering
+    {
+        bool IsSimple { get; }
+        ISparqlOrdering ThenBy { get; set; }
+        string Expression { get; }
+        string Variable { get; }
+        bool IsDescending { get; }
+        string GetSparqlRepresentation();
+    }
+
+    public class SparqlVariableOrdering : ISparqlOrdering
+    {
+        public SparqlVariableOrdering(string variable, bool descending)
+        {
+            Variable = variable;
+            Expression = null;
+            IsDescending = descending;
+        }
+
+        public bool IsDescending { get; private set; }
+        public bool IsSimple { get { return ThenBy == null || ThenBy.IsSimple; } }
+        public ISparqlOrdering ThenBy { get; set; }
+        public string Expression { get; private set; }
+        public string Variable { get; private set; }
+
+        public string GetSparqlRepresentation()
+        {
+            if (IsDescending)
+            {
+                return "DESC(?" + Variable + ")";
+            }
+            return "?" + Variable;
+        }
+    }
+
+    public class SparqlExpressionOrdering : ISparqlOrdering
+    {
+        public bool IsSimple { get; private set; }
+        public ISparqlOrdering ThenBy { get; set; }
+        public string Expression { get; private set; }
+        public string Variable { get; private set; }
+        public bool IsDescending { get; private set; }
+        public string GetSparqlRepresentation()
+        {
+            throw new NotImplementedException();
         }
     }
 }

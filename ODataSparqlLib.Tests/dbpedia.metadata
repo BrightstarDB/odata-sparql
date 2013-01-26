@@ -17,7 +17,7 @@
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/runtime"/>
         </Property>
         <NavigationProperty Name="Director" Relationship="DBPedia.Film_Director" FromRole="Film" ToRole ="Director">
-          <ValueAnnotation Term="Sparql.Property" String="http://dbpedia.org/ontology/director"/>
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/director"/>
         </NavigationProperty>
         <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
       </EntityType>
@@ -29,7 +29,19 @@
           <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
         </Property>
       </EntityType>
-      
+      <EntityType Name="Place">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.String" Nullable="false">
+          <ValueAnnotation Term="Sparql.IdentifierPrefix" String="http://dbpedia.org/resource/"/>
+        </Property>
+        <Property Name="Abbreviation" Type="Edm.String" Nullable="true"/>
+        <Property Name="Abstract" Type="Edm.String" Nullable="true"/>
+        <Property Name="AnnualTemperature" Type="Edm.Decimal" Nullable="true"/>
+        <Property Name="Elevation" Type="Edm.Decimal" Nullable="true"/>
+        <Property Name="PopulationTotal" Type="Edm.Int32" Nullable="true"/>
+      </EntityType>
       <Association Name="Film_Director">
         <End Role="Film" Type="DBPedia.Film" Multiplicity="*"/>
         <End Role="Director" Type="DBPedia.Film" Multiplicity="1"/>
@@ -38,6 +50,7 @@
       <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">
         <EntitySet Name="Films" EntityType="DBPedia.Film"/>
         <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
+        <EntitySet Name="Places" EntityType="DBPedia.Place"/>
         <AssociationSet Name="Film_Director" Association="DBPedia.Film_Director">
           <End Role="Film" EntitySet="Films"/>
           <End Role="Director" EntitySet="Persons"/>

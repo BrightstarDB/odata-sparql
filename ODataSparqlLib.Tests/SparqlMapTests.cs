@@ -43,26 +43,41 @@ namespace ODataSparqlLib.Tests
         [TestMethod]
         public void TestReadTypeUriAnnotation()
         {
-            var map = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            var map = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/", NameMapping.Unchanged);
             Assert.AreEqual("http://dbpedia.org/ontology/Film", map.GetUriForType("DBPedia.Film"));
         }
 
         [TestMethod]
         public void TestReadPropertyUriAnnotation()
         {
-            var map = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            var map = new SparqlMap("dbpedia.metadata", 
+                "http://dbpedia.org/ontology/", NameMapping.Unchanged,
+                "http://dbpedia.org/property/name", NameMapping.LowerCamelCase);
             Assert.AreEqual("http://dbpedia.org/property/name", map.GetUriForProperty("DBPedia.Film", "Name"));
         }
 
         [TestMethod]
         public void TestReadNavigationPropertyAnnotation()
         {
-            var map = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            var map = new SparqlMap("dbpedia.metadata", 
+                "http://dbpedia.org/ontology/", NameMapping.Unchanged,
+                "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
             string propertyUri;
             bool isInverse;
             Assert.IsTrue(map.TryGetUriForNavigationProperty("DBPedia.Film", "Director", out propertyUri, out isInverse));
             Assert.IsFalse(isInverse);
             Assert.AreEqual("http://dbpedia.org/ontology/director", propertyUri);
+        }
+
+        [TestMethod]
+        public void TestMapDefaults()
+        {
+            var map = new SparqlMap("dbpedia.metadata",
+                                    "http://dbpedia.org/ontology/", NameMapping.UpperCamelCase,
+                                    "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
+            Assert.AreEqual("http://dbpedia.org/ontology/Place", map.GetUriForType("DBPedia.Place"));
+            Assert.AreEqual("http://dbpedia.org/property/elevation", map.GetUriForProperty("DBPedia.Place", "Elevation"));
+            Assert.AreEqual("http://dbpedia.org/property/annualTemperature", map.GetUriForProperty("DBPedia.Place", "AnnualTemperature"));
         }
     }
 }

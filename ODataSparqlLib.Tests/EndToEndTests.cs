@@ -20,8 +20,8 @@ namespace ODataSparqlLib.Tests
     {
         private readonly IEdmModel _dbpediaModel;
         private readonly SparqlMap _dbpediaMap;
-        private SparqlRemoteEndpoint _sparqlEndpoint;
-        private string _odataBase;
+        private readonly SparqlRemoteEndpoint _sparqlEndpoint;
+        private readonly string _odataBase;
 
         public EndToEndTests()
         {
@@ -31,7 +31,8 @@ namespace ODataSparqlLib.Tests
                 Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out _dbpediaModel,
                                                             out errors);
             }
-            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/");
+            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/", NameMapping.Unchanged,
+                "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
             _sparqlEndpoint = new SparqlRemoteEndpoint(new Uri("http://dbpedia.org/sparql"),
                                                        "http://dbpedia.org")
                 {

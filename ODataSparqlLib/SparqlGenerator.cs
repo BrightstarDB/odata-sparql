@@ -12,7 +12,7 @@ namespace ODataSparqlLib
     {
         private readonly SparqlMap _map;
         private SparqlModel _sparqlModel;
-        private string _defaultLanguageCode;
+        private readonly string _defaultLanguageCode;
 
         public SparqlModel SparqlQueryModel { get { return _sparqlModel; } }
 
@@ -28,7 +28,7 @@ namespace ODataSparqlLib
             switch (query.Query.Kind)
             {
                 case QueryNodeKind.EntitySet:
-                    ProcessRoot(query.Query as EntitySetQueryNode);
+                    ProcessNode(query.Query as EntitySetQueryNode);
                     break;
                 case QueryNodeKind.KeyLookup:
                     ProcessRoot(query.Query as KeyLookupQueryNode);
@@ -40,9 +40,47 @@ namespace ODataSparqlLib
                     _sparqlModel.AddSelectVariable(instances, entityType.FullName());
                     _sparqlModel.IsDescribe = true;
                     break;
+                case QueryNodeKind.Top:
+                    var top = query.Query as TopQueryNode;
+                    ProcessNode(top.Collection);
+                    var processedLimit = ProcessNode(top.Amount);
+                    _sparqlModel.Limit = Convert.ToInt32(processedLimit);
+                    break;
                 default:
                     throw new NotImplementedException("No processing implemented for " + query.Query.Kind);
             }
+        }
+
+        private object ProcessNode(QueryNode queryNode)
+        {
+            switch (queryNode.Kind)
+            {
+                case QueryNodeKind.Constant:
+                    return ProcessConstant(queryNode as ConstantQueryNode);
+                case QueryNodeKind.EntitySet:
+                    return ProcessNode(queryNode as EntitySetQueryNode);
+                case QueryNodeKind.OrderBy:
+                    return ProcessNode(queryNode as OrderByQueryNode);
+                default:
+                    throw new NotImplementedException("No processing implemented for " + queryNode.Kind);
+            }
+        }
+
+        private object ProcessNode(OrderByQueryNode orderByQuery)
+        {
+            // TODO: This currently assumes a single property lookup
+            var ret = ProcessNode(orderByQuery.Collection);
+            var expression = ProcessNode(orderByQuery.Expression).ToString();
+            if (expression.StartsWith("?"))
+            {
+                _sparqlModel.Ordering = new SparqlVariableOrdering(expression.TrimStart('?'),
+                                                                   orderByQuery.Direction == OrderByDirection.Descending);
+            }
+            else
+            {
+                throw new Exception("No handling for SPARQL expression ordering yet");
+            }
+            return ret;
         }
 
         private void ProcessFilter(FilterQueryNode filterQuery)
@@ -51,7 +89,7 @@ namespace ODataSparqlLib
             _sparqlModel.CurrentGraphPattern.AddFilterExpression(filterSparqlExpression.ToString());
         }
 
-        private void ProcessRoot(EntitySetQueryNode entitySet)
+        private string ProcessNode(EntitySetQueryNode entitySet)
         {
             var entitySetType = _map.GetUriForType(entitySet.EntitySet.ElementType.FullName());
             if (entitySetType == null)
@@ -67,6 +105,7 @@ namespace ODataSparqlLib
                     ));
             _sparqlModel.AddSelectVariable(instancesVariable, entitySet.ItemType.FullName());
             _sparqlModel.IsDescribe = true;
+            return instancesVariable;
         }
 
         private void ProcessRoot(KeyLookupQueryNode keyLookup)
@@ -96,8 +135,7 @@ namespace ODataSparqlLib
             switch (queryNode.Kind)
             {
                 case QueryNodeKind.Constant:
-                    var constNode = queryNode as ConstantQueryNode;
-                    return ProcessConstant(constNode.Value);
+                    return ProcessConstant(queryNode as ConstantQueryNode);
                 case QueryNodeKind.Convert:
                     var convertNode = queryNode as ConvertQueryNode;
                     var sourceValue = ProcessNode(convertNode.Source);
@@ -116,9 +154,9 @@ namespace ODataSparqlLib
             }
         }
 
-        private object ProcessConstant(object value)
+        private object ProcessConstant(ConstantQueryNode constNode)
         {
-            return value;
+            return constNode == null ? null : constNode.Value;
         }
 
         private string MakeSparqlConstant(object value, string languageCode = null)

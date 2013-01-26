@@ -9,6 +9,9 @@ using VDS.RDF.Query;
 
 namespace ODataSparqlLib
 {
+    /// <summary>
+    /// This class is responsible for converting a SPARQL results set into an OData feed
+    /// </summary>
     public class ODataFeedGenerator
     {
         private readonly IODataResponseMessage _request;
@@ -16,6 +19,13 @@ namespace ODataSparqlLib
         private readonly string _baseUri;
         private readonly ODataMessageWriterSettings _writerSettings;
 
+        /// <summary>
+        /// Create a new feed generator
+        /// </summary>
+        /// <param name="requestMessage">The OData response message to be populated by the generator</param>
+        /// <param name="entityMap">The map to use to map RDF URIs to OData types and properties</param>
+        /// <param name="baseUri">The base URI for the OData feed</param>
+        /// <param name="messageWriterSettings">Additional settings to apply to the generated OData output</param>
         public ODataFeedGenerator(IODataResponseMessage requestMessage, SparqlMap entityMap, string baseUri, ODataMessageWriterSettings messageWriterSettings)
         {
             _request = requestMessage;
@@ -24,6 +34,11 @@ namespace ODataSparqlLib
             _writerSettings = messageWriterSettings;
         }
 
+        /// <summary>
+        /// Creates an OData feed response containing a list of entries for a particular type of entity
+        /// </summary>
+        /// <param name="resultsGraph">The RDF graph containing the SPARQL results</param>
+        /// <param name="entityType">The fully qualified domain name for the type of entity to be written</param>
         public void CreateFeedFromGraph(IGraph resultsGraph, string entityType)
         {
             var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
@@ -58,6 +73,12 @@ namespace ODataSparqlLib
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Creates an OData entry response message from an RDF graph
+        /// </summary>
+        /// <param name="resultsGraph">The SPARQL results graph to be processed</param>
+        /// <param name="entryResource">The URI of the RDF resource to be converted to an entry</param>
+        /// <param name="entryType">The fully qualified name of the type of entity that the RDF resource is to be converted to</param>
         public void CreateEntryFromGraph(IGraph resultsGraph, string entryResource, string entryType)
         {
             var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
@@ -173,26 +194,63 @@ namespace ODataSparqlLib
         private static object GetPrimitiveValue(string value, IEdmPrimitiveType targetType, bool asNullable)
         {
             // TODO: Some sort of cast to nullable when necessary
+            if (value == null) return NullOrDefault(targetType, asNullable);
+            try
+            {
+                switch (targetType.PrimitiveKind)
+                {
+                    case EdmPrimitiveTypeKind.Boolean:
+                        return Convert.ToBoolean(value);
+                    case EdmPrimitiveTypeKind.Byte:
+                        return Convert.ToByte(value);
+                    case EdmPrimitiveTypeKind.DateTime:
+                        return Convert.ToDateTime(value);
+                    case EdmPrimitiveTypeKind.Decimal:
+                        return Convert.ToDecimal(value);
+                    case EdmPrimitiveTypeKind.Double:
+                        return Convert.ToDouble(value);
+                    case EdmPrimitiveTypeKind.Int16:
+                        return Convert.ToInt16(value);
+                    case EdmPrimitiveTypeKind.Int32:
+                        return Convert.ToInt32(value);
+                    case EdmPrimitiveTypeKind.Int64:
+                        return Convert.ToInt64(value);
+                    case EdmPrimitiveTypeKind.String:
+                        return value;
+                    default:
+                        throw new NotSupportedException(
+                            String.Format("Support for primitive type {0} has not been implemented yet",
+                                          targetType.PrimitiveKind));
+                }
+            }
+            catch (FormatException)
+            {
+                return NullOrDefault(targetType, asNullable);
+            }
+        }
+
+        private static object NullOrDefault(IEdmPrimitiveType targetType, bool nullable)
+        {
             switch (targetType.PrimitiveKind)
             {
                 case EdmPrimitiveTypeKind.Boolean:
-                    return Convert.ToBoolean(value);
+                    return nullable ? new bool?() : false;
                 case EdmPrimitiveTypeKind.Byte:
-                    return Convert.ToByte(value);
+                    return nullable ? new byte?() : 0;
                 case EdmPrimitiveTypeKind.DateTime:
-                    return Convert.ToDateTime(value);
+                    return nullable ? new DateTime?() : DateTime.MinValue;
                 case EdmPrimitiveTypeKind.Decimal:
-                    return Convert.ToDecimal(value);
+                    return nullable ? new decimal?() : 0.0m;
                 case EdmPrimitiveTypeKind.Double:
-                    return Convert.ToDouble(value);
+                    return nullable ? new double?() : double.NaN;
                 case EdmPrimitiveTypeKind.Int16:
-                    return Convert.ToInt16(value);
+                    return nullable ? new short?() : 0;
                 case EdmPrimitiveTypeKind.Int32:
-                    return Convert.ToInt32(value);
+                    return nullable ? new int?() : 0;
                 case EdmPrimitiveTypeKind.Int64:
-                    return Convert.ToInt64(value);
+                    return nullable ? new long?() : 0;
                 case EdmPrimitiveTypeKind.String:
-                    return value;
+                    return null;
                 default:
                     throw new NotSupportedException(
                         String.Format("Support for primitive type {0} has not been implemented yet",

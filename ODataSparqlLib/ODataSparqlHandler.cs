@@ -10,18 +10,18 @@ namespace ODataSparqlLib
 {
     public class ODataSparqlHandler : IHttpHandler
     {
-        private readonly Dictionary<string, ODataSparqlServiceConfiguration> _contexts;
+        private readonly Dictionary<string, ODataSparqlServiceSettings> _contexts;
         private readonly object _contextLock = new object();
         public ODataSparqlHandler()
         {
-            _contexts = new Dictionary<string, ODataSparqlServiceConfiguration>();
+            _contexts = new Dictionary<string, ODataSparqlServiceSettings>();
         }
 
         public void ProcessRequest(HttpContext context)
         {
             HttpRequest request = context.Request;
             var pathSegments = request.Path.Split('/');
-            ODataSparqlServiceConfiguration serviceConfiguration = null;
+            ODataSparqlServiceSettings serviceSettings = null;
             var baseUriBuilder = new StringBuilder();
             foreach (var pathSegment in pathSegments)
             {
@@ -30,25 +30,25 @@ namespace ODataSparqlLib
                 if (pathSegment.EndsWith(".sparql"))
                 {
                     var serviceName = pathSegment.Substring(0, pathSegment.LastIndexOf('.'));
-                    serviceConfiguration = AssertContext(serviceName, context);
+                    serviceSettings = AssertContext(serviceName, context);
                     break;
                 }
             }
             
-            var handler = new ODataSparqlRequestHandler(serviceConfiguration);
+            var handler = new ODataSparqlRequestHandler(serviceSettings);
             handler.ProcessRequest(context, new Uri(context.Request.Url, baseUriBuilder.ToString()));
         }
 
         public bool IsReusable { get { return true; } }
 
-        private ODataSparqlServiceConfiguration AssertContext(string name, HttpContext context)
+        private ODataSparqlServiceSettings AssertContext(string name, HttpContext context)
         {
             lock (_contextLock)
             {
-                ODataSparqlServiceConfiguration ret;
+                ODataSparqlServiceSettings ret;
                 if (!_contexts.TryGetValue(name, out ret))
                 {
-                    ret = new ODataSparqlServiceConfiguration(name, context.Server);
+                    ret = new ODataSparqlServiceSettings(name, context.Server);
                     _contexts[name] = ret;
                 }
                 return ret;
