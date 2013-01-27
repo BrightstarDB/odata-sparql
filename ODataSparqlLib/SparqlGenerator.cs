@@ -114,16 +114,17 @@ namespace ODataSparqlLib
             if (keyPropertyValues.Count == 1)
             {
                 var kpv = keyPropertyValues[0];
-                var parentEntity = kpv.KeyProperty.DeclaringType as IEdmEntityType;
-                if (parentEntity != null)
+                var rootEntity = kpv.KeyProperty.DeclaringType as IEdmEntityType; // Get the entity that declares the Id property
+                if (rootEntity != null)
                 {
                     string prefix;
-                    if (_map.TryGetIdentifierPrefixForProperty(parentEntity.FullName(), kpv.KeyProperty.Name, out prefix))
+                    if (_map.TryGetIdentifierPrefixForProperty(rootEntity.FullName(), kpv.KeyProperty.Name, out prefix))
                     {
                         object keyValue = ProcessNode(kpv.KeyValue);
                         if (keyValue != null)
                         {
-                            _sparqlModel.SelectEntity(prefix + keyValue, parentEntity.FullName());
+                            _sparqlModel.SelectEntity(
+                                prefix + keyValue, keyLookup.Collection.ItemType.FullName());
                         }
                     }
                 }
@@ -139,6 +140,10 @@ namespace ODataSparqlLib
                 case QueryNodeKind.Convert:
                     var convertNode = queryNode as ConvertQueryNode;
                     var sourceValue = ProcessNode(convertNode.Source);
+                    if (convertNode.TargetType.IsInt32())
+                    {
+                        return Convert.ToInt32(sourceValue);
+                    }
                     if (convertNode.TargetType.IsString())
                     {
                         return sourceValue.ToString();
@@ -235,6 +240,8 @@ namespace ODataSparqlLib
             {
                 case BinaryOperatorKind.Equal:
                     return left + " = " + right;
+                case BinaryOperatorKind.GreaterThan:
+                    return left + " > " + right;
                 default:
                     throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);
             }

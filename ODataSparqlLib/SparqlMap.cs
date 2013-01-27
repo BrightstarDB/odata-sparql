@@ -66,15 +66,7 @@ namespace ODataSparqlLib
         {
             if (IsIgnored(entityType)) return;
             var typeUri = GetUriMapping(entityType);
-            
-            var keyList = entityType.DeclaredKey.ToList();
-            if (keyList.Count != 1)
-            {
-                // Ignore this entity
-                // TODO: Log an error
-                return;
-            }
-            string identifierPrefix = GetStringAnnotationValue(keyList.First(), AnnotationsNamespace, "IdentifierPrefix");
+            var identifierPrefix = GetIdentifierPrefix(entityType);
 
             _typeUriMap[entityType.FullName()] = new TypeMapping
                 {
@@ -85,6 +77,32 @@ namespace ODataSparqlLib
             {
                 ReadProperty(entityType, property);
             }
+        }
+
+        private string GetIdentifierPrefix(IEdmEntityType entityType)
+        {
+            if (entityType.BaseEntityType() != null)
+            {
+                return GetIdentifierPrefix(entityType.BaseEntityType());
+            }
+            TypeMapping existingMapping;
+            if (_typeUriMap.TryGetValue(entityType.FullName(), out existingMapping))
+            {
+                return existingMapping.IdentifierPrefix;
+            }
+            var keyList = entityType.DeclaredKey.ToList();
+            if (keyList.Count != 1)
+            {
+                // Ignore this entity
+                // TODO: Log an error
+                return null;
+            }
+            var identifierPrefix = GetStringAnnotationValue(keyList.First(), AnnotationsNamespace, "IdentifierPrefix");
+            if (identifierPrefix == null)
+            {
+                // TODO: Log an error
+            }
+            return identifierPrefix;
         }
 
         private class TypeMapping
@@ -197,13 +215,16 @@ namespace ODataSparqlLib
         private string GetStringAnnotationValue(IEdmVocabularyAnnotatable annotatable, string annotationNamespace,
                                                 string annotationName)
         {
+            // Find only direct annotation which have a string constant value
             IEdmValueAnnotation annotation = annotatable.VocabularyAnnotations(Model).
                                                      OfType<IEdmValueAnnotation>().
                                                      FirstOrDefault(
                                                          a =>
                                                          a.Term.Namespace.Equals(annotationNamespace) &&
                                                          a.Term.Name.Equals(annotationName) &&
-                                                         a.Value.ExpressionKind == EdmExpressionKind.StringConstant);
+                                                         a.Value.ExpressionKind == EdmExpressionKind.StringConstant &&
+                                                         a.Target.Equals(annotatable));
+
             return annotation != null ? (annotation.Value as IEdmStringConstantExpression).Value : null;
         }
 
@@ -215,7 +236,8 @@ namespace ODataSparqlLib
                                         .FirstOrDefault(
                                             a => a.Value.ExpressionKind == EdmExpressionKind.BooleanConstant &&
                                                  a.Term.Namespace.Equals(annotationNamespace) &&
-                                                 a.Term.Name.Equals(annotaionName));
+                                                 a.Term.Name.Equals(annotaionName) &&
+                                                 a.Target.Equals(annotatable));
             return annotation != null
                        ? (annotation.Value as IEdmBooleanConstantExpression).Value
                        : (bool?)null;

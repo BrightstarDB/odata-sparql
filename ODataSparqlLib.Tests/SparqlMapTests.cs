@@ -26,8 +26,13 @@ namespace ODataSparqlLib.Tests
                                                                           out errors));
                 var film = model.FindDeclaredType("DBPedia.Film");
                 Assert.IsNotNull(film);
+                // All annotations includes one from the base class
                 var annotations = film.VocabularyAnnotations(model).ToList();
+                Assert.AreEqual(2, annotations.Count);
+                // This query should return only direct annotations
+                annotations = film.VocabularyAnnotations(model).Where(a => a.Target.Equals(film)).ToList();
                 Assert.AreEqual(1, annotations.Count);
+
                 var annotation = annotations[0];
                 Assert.IsInstanceOfType(annotation, typeof(IEdmValueAnnotation));
                 Assert.IsFalse(annotation.IsBad());
@@ -75,6 +80,9 @@ namespace ODataSparqlLib.Tests
             var map = new SparqlMap("dbpedia.metadata",
                                     "http://dbpedia.org/ontology/", NameMapping.UpperCamelCase,
                                     "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
+            Assert.AreEqual("http://www.w3.org/2002/07/owl#Thing", map.GetUriForType("DBPedia.Thing"));
+            Assert.AreEqual("http://dbpedia.org/ontology/Work", map.GetUriForType("DBPedia.Work"));
+            Assert.AreEqual("http://dbpedia.org/ontology/Film", map.GetUriForType("DBPedia.Film"));
             Assert.AreEqual("http://dbpedia.org/ontology/Place", map.GetUriForType("DBPedia.Place"));
             Assert.AreEqual("http://dbpedia.org/property/elevation", map.GetUriForProperty("DBPedia.Place", "Elevation"));
             Assert.AreEqual("http://dbpedia.org/property/annualTemperature", map.GetUriForProperty("DBPedia.Place", "AnnualTemperature"));
