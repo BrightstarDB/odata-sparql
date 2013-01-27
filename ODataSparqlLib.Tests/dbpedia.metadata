@@ -17,6 +17,7 @@
       <!-- http://mappings.dbpedia.org/server/ontology/classes/Work -->
       <EntityType Name="Work" BaseType="DBPedia.Thing">
         <Property Name="Title" Type="Edm.String" Nullable="true"/>
+        <NavigationProperty Name="Director" Relationship="DBPedia.Work_Director" FromRole="Work" ToRole ="Director"/>
       </EntityType>
 
       <!-- http://mappings.dbpedia.org/server/ontology/classes/Film -->
@@ -28,9 +29,6 @@
         <Property Name="Runtime" Type="Decimal" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/runtime"/>
         </Property>
-        <NavigationProperty Name="Director" Relationship="DBPedia.Film_Director" FromRole="Film" ToRole ="Director">
-          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/director"/>
-        </NavigationProperty>
         <Property Name="ImdbId" Type="Edm.String" Nullable="true"/>
         <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
       </EntityType>
@@ -60,8 +58,8 @@
       </EntityType>
       
       
-      <Association Name="Film_Director">
-        <End Role="Film" Type="DBPedia.Film" Multiplicity="*"/>
+      <Association Name="Work_Director">
+        <End Role="Work" Type="DBPedia.Work" Multiplicity="*"/>
         <End Role="Director" Type="DBPedia.Person" Multiplicity="*"/>
       </Association>
       <Association Name="Person_BirthPlace">

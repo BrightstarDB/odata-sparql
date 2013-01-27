@@ -69,9 +69,12 @@ namespace ODataSparqlLib.Tests
                 "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
             string propertyUri;
             bool isInverse;
+            Assert.IsTrue(map.TryGetUriForNavigationProperty("DBPedia.Work", "Director", out propertyUri, out isInverse));
+            Assert.IsFalse(isInverse);
+            Assert.AreEqual("http://dbpedia.org/property/director", propertyUri);
             Assert.IsTrue(map.TryGetUriForNavigationProperty("DBPedia.Film", "Director", out propertyUri, out isInverse));
             Assert.IsFalse(isInverse);
-            Assert.AreEqual("http://dbpedia.org/ontology/director", propertyUri);
+            Assert.AreEqual("http://dbpedia.org/property/director", propertyUri);
         }
 
         [TestMethod]
