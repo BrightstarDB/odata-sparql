@@ -45,11 +45,16 @@
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/deathDate"/>
         </Property>
         <NavigationProperty Name="BirthPlace" Relationship="DBPedia.Person_BirthPlace"
-                            FromRole="Person" ToRole="BirthPlace"/>
+                            FromRole="Person" ToRole="BirthPlace">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/birthPlace"/>
+        </NavigationProperty>
         <NavigationProperty Name="DeathPlace" Relationship="DBPedia.Person_DeathPlace"
-                            FromRole="Person" ToRole="DeathPlace"/>
+                            FromRole="Person" ToRole="DeathPlace">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/deathPlace"/>
+        </NavigationProperty>
         <NavigationProperty Name="RestingPlace" Relationship="DBPedia.Person_RestingPlace"
                             FromRole="Person" ToRole="RestingPlace"/>
+        <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Person" />
       </EntityType>
       
       <!-- http://mappings.dbpedia.org/server/ontology/classes/Place -->

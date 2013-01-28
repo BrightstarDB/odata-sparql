@@ -151,9 +151,34 @@ namespace ODataSparqlLib
                 }
             }
 
-            entry.AssociationLinks =
-                _map.GetAssociationPropertyMappings(entryType)
-                    .Select(m => new ODataAssociationLink {Name = m.Name, Url = new Uri(odataLink + "/" + m.Name)});
+            var associationLinks = new List<ODataAssociationLink>();
+            foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
+            {
+                bool hasMatch = false;
+                if (assocMap.IsInverse)
+                {
+                    hasMatch = resultsGraph.GetTriplesWithPredicateObject(
+                        resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri)), subject).Any();
+                }
+                else
+                {
+                    hasMatch = resultsGraph.GetTriplesWithSubjectPredicate(
+                        subject, resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
+                }
+                // TODO: May need to be more specific here to catch inverse/forward versions of the same
+                // RDF property being mapped to two different OData properties (e.g. broader and narrower on a category)
+                // This quick hack will work for now though:
+                //bool hasMatch = resultsGraph.GetTriplesWithPredicate(resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
+                if (hasMatch)
+                {
+                    associationLinks.Add(new ODataAssociationLink { Name = assocMap.Name, Url = new Uri(odataLink + "/" + assocMap.Name) });
+                }
+            }
+            entry.AssociationLinks = associationLinks;
+
+            //entry.AssociationLinks =
+            //    _map.GetAssociationPropertyMappings(entryType)
+            //        .Select(m => new ODataAssociationLink {Name = m.Name, Url = new Uri(odataLink + "/" + m.Name)});
             entry.Properties = properties;
             return entry;
         }

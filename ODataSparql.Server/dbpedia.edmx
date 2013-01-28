@@ -3,62 +3,92 @@
   <edmx:DataServices xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" m:DataServiceVersion="2.0">
     <Schema xmlns="http://schemas.microsoft.com/ado/2009/11/edm" Namespace="DBPedia">
       <Using Namespace="ODataSparqlLib.Annotations" Alias="Sparql"/>
-      <EntityType Name="Film">
+
+      <EntityType Name="Thing">
         <Key>
           <PropertyRef Name="Id"/>
         </Key>
         <Property Name="Id" Type="Edm.String" Nullable="false">
           <ValueAnnotation Term="Sparql.IdentifierPrefix" String="http://dbpedia.org/resource/"/>
         </Property>
+        <ValueAnnotation Term="Sparql.Uri" String="http://www.w3.org/2002/07/owl#Thing"/>
+      </EntityType>
+
+      <!-- http://mappings.dbpedia.org/server/ontology/classes/Work -->
+      <EntityType Name="Work" BaseType="DBPedia.Thing">
+        <Property Name="Title" Type="Edm.String" Nullable="true"/>
+        <NavigationProperty Name="Director" Relationship="DBPedia.Work_Director" FromRole="Work" ToRole ="Director"/>
+      </EntityType>
+
+      <!-- http://mappings.dbpedia.org/server/ontology/classes/Film -->
+      <!-- Derived from Work -->
+      <EntityType Name="Film" BaseType="DBPedia.Work">
         <Property Name="Name" Type="Edm.String" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/name"/>
         </Property>
         <Property Name="Runtime" Type="Decimal" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/runtime"/>
         </Property>
-        <NavigationProperty Name="Director" Relationship="DBPedia.Film_Director" FromRole="Film" ToRole ="Director">
-          <ValueAnnotation Term="Sparql.Property" String="http://dbpedia.org/ontology/director"/>
-        </NavigationProperty>
+        <Property Name="ImdbId" Type="Edm.String" Nullable="true"/>
         <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
       </EntityType>
-      <EntityType Name="Person">
-        <Key>
-          <PropertyRef Name="Id"/>
-        </Key>
+
+      <!-- http://mappings.dbpedia.org/server/ontology/classes/Person -->
+      <EntityType Name="Person" BaseType="DBPedia.Thing">
         <Property Name="Name" Type="Edm.String" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
         </Property>
+        <Property Name="BirthDate" Type="Edm.DateTimeOffset" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/birthDate"/>
+        </Property>
+        <Property Name="DeathDate" Type="Edm.DateTimeOffset" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/deathDate"/>
+        </Property>
+        <NavigationProperty Name="BirthPlace" Relationship="DBPedia.Person_BirthPlace"
+                            FromRole="Person" ToRole="BirthPlace"/>
+        <NavigationProperty Name="DeathPlace" Relationship="DBPedia.Person_DeathPlace"
+                            FromRole="Person" ToRole="DeathPlace"/>
+        <NavigationProperty Name="RestingPlace" Relationship="DBPedia.Person_RestingPlace"
+                            FromRole="Person" ToRole="RestingPlace"/>
       </EntityType>
-      <EntityType Name="Place">
-        <Key>
-          <PropertyRef Name="Id"/>
-        </Key>
-        <Property Name="Id" Type="Edm.String" Nullable="false">
-          <ValueAnnotation Term="Sparql.IdentifierPrefix" String="http://dbpedia.org/resource/"/>
-        </Property>
-        <Property Name="Name" Type="Edm.String" Nullable="false">
-          <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
-        </Property>
+
+      <!-- http://mappings.dbpedia.org/server/ontology/classes/Place -->
+      <EntityType Name="Place" BaseType ="DBPedia.Thing">
         <Property Name="Abbreviation" Type="Edm.String" Nullable="true"/>
         <Property Name="Abstract" Type="Edm.String" Nullable="true"/>
         <Property Name="AnnualTemperature" Type="Edm.Decimal" Nullable="true"/>
         <Property Name="Elevation" Type="Edm.Decimal" Nullable="true"/>
         <Property Name="PopulationTotal" Type="Edm.Int32" Nullable="true"/>
       </EntityType>
-      <Association Name="Film_Director">
-        <End Role="Film" Type="DBPedia.Film" Multiplicity="*"/>
-        <End Role="Director" Type="DBPedia.Film" Multiplicity="1"/>
+
+
+      <Association Name="Work_Director">
+        <End Role="Work" Type="DBPedia.Work" Multiplicity="*"/>
+        <End Role="Director" Type="DBPedia.Person" Multiplicity="1"/>
       </Association>
-      
+      <Association Name="Person_BirthPlace">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="BirthPlace" Type="DBPedia.Place" Multiplicity="1"/>
+      </Association>
+      <Association Name="Person_DeathPlace">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="DeathPlace" Type="DBPedia.Place" Multiplicity="1"/>
+      </Association>
+      <Association Name="Person_RestingPlace">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="RestingPlace" Type="DBPedia.Place" Multiplicity="1"/>
+      </Association>
+
       <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">
         <EntitySet Name="Films" EntityType="DBPedia.Film"/>
         <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
-        <EntitySet Name="Places" EntityType="DBPedia.Place" />
+        <EntitySet Name="Places" EntityType="DBPedia.Place"/>
         <AssociationSet Name="Film_Director" Association="DBPedia.Film_Director">
           <End Role="Film" EntitySet="Films"/>
           <End Role="Director" EntitySet="Persons"/>
         </AssociationSet>
       </EntityContainer>
+
     </Schema>
   </edmx:DataServices>
 </edmx:Edmx>

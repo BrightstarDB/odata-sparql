@@ -72,7 +72,7 @@ namespace ODataSparqlLib.Tests
         [TestMethod]
         public void TestSinglePropertyNavigation()
         {
-            const string odataQuery = "http://example.org/odata/Films('Un_Chien_Andalou')/Director";
+            string odataQuery = "http://example.org/odata/Films('Un_Chien_Andalou')/Director";
             var parsedQuery = QueryDescriptorQueryNode.ParseUri(
                 new Uri(odataQuery),
                 new Uri(_odataBase),
@@ -84,6 +84,53 @@ namespace ODataSparqlLib.Tests
             validator.AssertRoot("atom:entry");
         }
 
+        [TestMethod]
+        public void TestSinglePropertyNavigationWithMissingLinks()
+        {
+            string odataQuery = "http://example.org/odata/Films('Annie_Hall')/Director";
+            var parsedQuery = QueryDescriptorQueryNode.ParseUri(
+                new Uri(odataQuery),
+                new Uri(_odataBase),
+                _dbpediaModel);
+            var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
+            sparqlGenerator.ProcessQuery(parsedQuery);
+            var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:entry");
+            Assert.IsTrue(validator.HasXPathMatch("atom:entry/atom:link[@title='BirthPlace']"));
+            Assert.IsFalse(validator.HasXPathMatch("atom:entry/atom:link[@title='DeathPlace']"));
+        }
+
+        [TestMethod]
+        public void TestSinglePropertyNavigation2()
+        {
+            var odataQuery = "http://example.org/odata/Persons('Luis_Bu%C3%B1uel')/BirthPlace";
+            var parsedQuery = QueryDescriptorQueryNode.ParseUri(
+                new Uri(odataQuery),
+                new Uri(_odataBase),
+                _dbpediaModel);
+            var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
+            sparqlGenerator.ProcessQuery(parsedQuery);
+            var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:entry");
+        }
+
+        [TestMethod]
+        public void TestSinglePropertyNavigation3()
+        {
+            var odataQuery = "http://example.org/odata/Persons('Woody_Allen')/BirthPlace";
+            var parsedQuery = QueryDescriptorQueryNode.ParseUri(
+                new Uri(odataQuery),
+                new Uri(_odataBase),
+                _dbpediaModel);
+            var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
+            sparqlGenerator.ProcessQuery(parsedQuery);
+            var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:entry");
+            
+        }
         [TestMethod]
         public void TestSinglePropertyEq()
         {
@@ -160,6 +207,11 @@ namespace ODataSparqlLib.Tests
                 _doc.Save(writer);
                 return writer.ToString();
             }
+        }
+
+        public bool HasXPathMatch(string xpath)
+        {
+            return _nav.Select(xpath, _nsMgr).MoveNext();
         }
     }
 }
