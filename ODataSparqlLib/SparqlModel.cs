@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using VDS.RDF;
 using VDS.RDF.Query;
@@ -14,13 +15,13 @@ namespace ODataSparqlLib
         {
             RootGraphPattern = new GraphPattern();
             SelectVariables = new List<string>();
-            VariableType = new Dictionary<string, string>();
+            VariableType = new Dictionary<string, SparqlVariableInfo>();
             CurrentGraphPattern = RootGraphPattern;
         }
 
         public GraphPattern RootGraphPattern { get; private set; }
         public List<string> SelectVariables { get; private set; }
-        public Dictionary<string, string> VariableType { get; private set; }
+        public Dictionary<string, SparqlVariableInfo> VariableType { get; private set; }
         public bool IsDescribe { get; set; }
         public string DescribeResource { get; private set; }
         public int? Limit { get; set; }
@@ -33,12 +34,12 @@ namespace ODataSparqlLib
         }
 
 
-        public void AddSelectVariable(string variableName, string entityType)
+        public void AddSelectVariable(string variableName, string entityType, bool isCollection)
         {
             if (!SelectVariables.Contains(variableName))
             {
                 SelectVariables.Add(variableName);
-                VariableType[variableName] = entityType;
+                VariableType[variableName] = new SparqlVariableInfo{EntityType = entityType, IsCollection = isCollection};
             }
         }
 
@@ -57,7 +58,22 @@ namespace ODataSparqlLib
                     foreach (var sv in SelectVariables)
                     {
                         queryBuilder.AppendFormat("?{0} ?{0}_p ?{0}_o . ", sv);
-                        RootGraphPattern.Add(new TriplePattern(new VariablePatternItem(sv), new VariablePatternItem(sv+"_p"), new VariablePatternItem(sv+"_o")  ));
+                        queryBuilder.AppendFormat(
+                            "?{0} <http://brightstardb.com/odata-sparql/variable-binding> \"{0}\"", sv);
+                        if (!RootGraphPattern.TriplePatterns.Any(
+                            tp => tp.Subject is VariablePatternItem
+                                  && (tp.Subject as VariablePatternItem).VariableName.Equals(sv)
+                                  && tp.Predicate is VariablePatternItem
+                                  && (tp.Predicate as VariablePatternItem).VariableName.Equals(sv + "_p")
+                                  && tp.Object is VariablePatternItem
+                                  && (tp.Object as VariablePatternItem).VariableName.Equals(sv + "_o")
+                                 )
+                            )
+                        {
+                            RootGraphPattern.Add(new TriplePattern(new VariablePatternItem(sv),
+                                                                   new VariablePatternItem(sv + "_p"),
+                                                                   new VariablePatternItem(sv + "_o")));
+                        }
                     }
                     queryBuilder.Append("} ");
                 }
@@ -112,7 +128,15 @@ namespace ODataSparqlLib
                             throw new Exception(
                                 "Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
                         }
-                        handler.CreateFeedFromGraph(resultsGraph, VariableType[SelectVariables[0]], this);
+                        var selectVarInfo = VariableType[SelectVariables[0]];
+                        if (selectVarInfo.IsCollection)
+                        {
+                            handler.CreateFeedFromGraph(resultsGraph, selectVarInfo.EntityType, this);
+                        }
+                        else
+                        {
+                            handler.CreateEntryFromGraphWithVariable(resultsGraph, SelectVariables[0], selectVarInfo.EntityType);
+                        }
                     }
                 }
             }
@@ -127,14 +151,21 @@ namespace ODataSparqlLib
         {
             DescribeResource = entityResource;
             IsDescribe = true;
-            VariableType[entityResource] = entityType;
+            VariableType[entityResource] = new SparqlVariableInfo {EntityType = entityType, IsCollection = false};
         }
 
         public string GetEntityType(string variableOrResource)
         {
-            return VariableType[variableOrResource];
+            return VariableType[variableOrResource].EntityType;
+        }
+
+        public class SparqlVariableInfo
+        {
+            public string EntityType { get; set; }
+            public bool IsCollection { get; set; } 
         }
     }
+
 
     public interface ISparqlOrdering
     {

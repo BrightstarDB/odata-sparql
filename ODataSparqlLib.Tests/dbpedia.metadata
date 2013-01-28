@@ -38,8 +38,12 @@
         <Property Name="Name" Type="Edm.String" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
         </Property>
-        <Property Name="BirthDate" Type="Edm.DateTime" Nullable="true"/>
-        <Property Name="DeathDate" Type="Edm.DateTime" Nullable="true"/>
+        <Property Name="BirthDate" Type="Edm.DateTimeOffset" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/birthDate"/>
+        </Property>
+        <Property Name="DeathDate" Type="Edm.DateTimeOffset" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/deathDate"/>
+        </Property>
         <NavigationProperty Name="BirthPlace" Relationship="DBPedia.Person_BirthPlace"
                             FromRole="Person" ToRole="BirthPlace"/>
         <NavigationProperty Name="DeathPlace" Relationship="DBPedia.Person_DeathPlace"
@@ -60,7 +64,7 @@
       
       <Association Name="Work_Director">
         <End Role="Work" Type="DBPedia.Work" Multiplicity="*"/>
-        <End Role="Director" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="Director" Type="DBPedia.Person" Multiplicity="1"/>
       </Association>
       <Association Name="Person_BirthPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>

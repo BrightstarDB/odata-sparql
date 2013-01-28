@@ -37,7 +37,7 @@ namespace ODataSparqlLib
                     var entityType = (query.Query as FilterQueryNode).ItemType;
                     var instances = AssertInstancesVariable(entityType);
                     ProcessFilter(query.Query as FilterQueryNode);
-                    _sparqlModel.AddSelectVariable(instances, entityType.FullName());
+                    _sparqlModel.AddSelectVariable(instances, entityType.FullName(), true);
                     _sparqlModel.IsDescribe = true;
                     break;
                 case QueryNodeKind.Top:
@@ -49,7 +49,10 @@ namespace ODataSparqlLib
                 case QueryNodeKind.Segment:
                     var navigation = query.Query as NavigationPropertyNode;
                     var finalVar = ProcessNode(navigation);
-                    _sparqlModel.AddSelectVariable(finalVar.ToString(), navigation.TypeReference.FullName());
+                    _sparqlModel.AddSelectVariable(
+                        finalVar.ToString(), 
+                        navigation.TypeReference.FullName(),
+                        navigation.NavigationProperty.OwnMultiplicity() == EdmMultiplicity.Many);
                     _sparqlModel.IsDescribe = true;
                     break;
                 default:
@@ -168,7 +171,7 @@ namespace ODataSparqlLib
                     new UriPatternItem("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
                     new UriPatternItem(entitySetType)
                     ));
-            _sparqlModel.AddSelectVariable(instancesVariable, entitySet.ItemType.FullName());
+            _sparqlModel.AddSelectVariable(instancesVariable, entitySet.ItemType.FullName(), true);
             _sparqlModel.IsDescribe = true;
             return instancesVariable;
         }

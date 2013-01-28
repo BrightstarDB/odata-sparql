@@ -209,6 +209,8 @@ namespace ODataSparqlLib
                         return valuedNode.AsInteger();
                     case EdmPrimitiveTypeKind.String:
                         return valuedNode.AsString();
+                    case EdmPrimitiveTypeKind.DateTimeOffset:
+                        return valuedNode.AsDateTime();
                     default:
                         throw new NotSupportedException(
                             String.Format("Support for primitive type {0} has not been implemented yet",
@@ -229,6 +231,7 @@ namespace ODataSparqlLib
                     case EdmPrimitiveTypeKind.Byte:
                         return Convert.ToByte(value);
                     case EdmPrimitiveTypeKind.DateTime:
+                    case EdmPrimitiveTypeKind.DateTimeOffset:
                         return Convert.ToDateTime(value);
                     case EdmPrimitiveTypeKind.Decimal:
                         return Convert.ToDecimal(value);
@@ -295,6 +298,19 @@ namespace ODataSparqlLib
                                    }).ToList();
             var workspace = new ODataWorkspace {Collections = collections};
             msgWriter.WriteServiceDocument(workspace);
+        }
+
+        internal void CreateEntryFromGraphWithVariable(IGraph resultsGraph, string variableName, string entityType)
+        {
+            // Determine the resource that was bound to the specified SPARQL variable
+            var resource = resultsGraph.GetTriplesWithPredicateObject(
+                resultsGraph.CreateUriNode(new Uri("http://brightstardb.com/odata-sparql/variable-binding")),
+                resultsGraph.CreateLiteralNode(variableName))
+                        .Select(t => t.Subject)
+                        .Cast<IUriNode>()
+                        .Select(u => u.Uri)
+                        .FirstOrDefault();
+            CreateEntryFromGraph(resultsGraph, resource.ToString(), entityType);
         }
     }
 }

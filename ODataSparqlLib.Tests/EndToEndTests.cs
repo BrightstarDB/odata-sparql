@@ -79,10 +79,9 @@ namespace ODataSparqlLib.Tests
                 _dbpediaModel);
             var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
             sparqlGenerator.ProcessQuery(parsedQuery);
-            Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
             var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
             Console.WriteLine(validator.ToString());
-            validator.AssertRoot("atom:feed");
+            validator.AssertRoot("atom:entry");
         }
 
         [TestMethod]
