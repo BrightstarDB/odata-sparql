@@ -282,5 +282,19 @@ namespace ODataSparqlLib
                                       targetType.PrimitiveKind));
             }
         }
+
+        public void WriteServiceDocument()
+        {
+            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
+            var collections = (from entityContainer in _map.Model.EntityContainers()
+                               where _map.Model.IsDefaultEntityContainer(entityContainer)
+                               from entitySet in entityContainer.EntitySets()
+                               select new ODataResourceCollectionInfo
+                                   {
+                                       Url = new Uri(entitySet.Name, UriKind.Relative)
+                                   }).ToList();
+            var workspace = new ODataWorkspace {Collections = collections};
+            msgWriter.WriteServiceDocument(workspace);
+        }
     }
 }

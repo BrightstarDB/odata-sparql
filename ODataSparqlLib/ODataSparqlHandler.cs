@@ -17,6 +17,11 @@ namespace ODataSparqlLib
             _contexts = new Dictionary<string, ODataSparqlServiceSettings>();
         }
 
+        /// <summary>
+        /// Processes an incoming HTTP request to the correct configured
+        /// OData SPARQL service endpoint
+        /// </summary>
+        /// <param name="context"></param>
         public void ProcessRequest(HttpContext context)
         {
             HttpRequest request = context.Request;
