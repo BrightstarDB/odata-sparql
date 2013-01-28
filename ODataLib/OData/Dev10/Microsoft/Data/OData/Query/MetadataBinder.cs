@@ -194,9 +194,45 @@ namespace Microsoft.Data.OData.Query
             }
             else
             {
+                return this.BindNonRootSegment(segmentToken);
                 // TODO: return this.BindNonRootSegment(segmentToken);
                 throw new NotImplementedException();
             }
+        }
+
+        protected virtual QueryNode BindNonRootSegment(SegmentQueryToken segmentToken)
+        {
+            var parent = Bind(segmentToken.Parent);
+            if (parent is SingleValueQueryNode)
+            {
+                var parentType = (parent as SingleValueQueryNode).TypeReference.Definition;
+                if (parentType is IEdmEntityType)
+                {
+                    var parentEntityType = parentType as IEdmEntityType;
+                    var targetProperty = parentEntityType.Properties().FirstOrDefault(p => p.Name.Equals(segmentToken.Name));
+                    if (targetProperty != null)
+                    {
+                        if (targetProperty is IEdmNavigationProperty)
+                        {
+                            var targetNavProperty = targetProperty as IEdmNavigationProperty;
+                                return new NavigationPropertyNode
+                                    {
+                                        NavigationProperty = targetNavProperty,
+                                        Source = parent
+                                    };
+                        }
+                        if (targetProperty is IEdmStructuralProperty)
+                        {
+                            return new PropertyAccessQueryNode
+                                {
+                                    Source = parent as SingleValueQueryNode,
+                                    Property = targetProperty
+                                };
+                        }
+                    }
+                }
+            }
+            throw new NotImplementedException();
         }
 
         /// <summary>

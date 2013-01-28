@@ -38,8 +38,8 @@
         <Property Name="Name" Type="Edm.String" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
         </Property>
-        <Property Name="BirthDate" Type="Edm.Date" Nullable="true"/>
-        <Property Name="DeathDate" Type="Edm.Date" Nullable="true"/>
+        <Property Name="BirthDate" Type="Edm.DateTime" Nullable="true"/>
+        <Property Name="DeathDate" Type="Edm.DateTime" Nullable="true"/>
         <NavigationProperty Name="BirthPlace" Relationship="DBPedia.Person_BirthPlace"
                             FromRole="Person" ToRole="BirthPlace"/>
         <NavigationProperty Name="DeathPlace" Relationship="DBPedia.Person_DeathPlace"

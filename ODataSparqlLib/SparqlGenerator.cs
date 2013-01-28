@@ -46,6 +46,12 @@ namespace ODataSparqlLib
                     var processedLimit = ProcessNode(top.Amount);
                     _sparqlModel.Limit = Convert.ToInt32(processedLimit);
                     break;
+                case QueryNodeKind.Segment:
+                    var navigation = query.Query as NavigationPropertyNode;
+                    var finalVar = ProcessNode(navigation);
+                    _sparqlModel.AddSelectVariable(finalVar.ToString(), navigation.TypeReference.FullName());
+                    _sparqlModel.IsDescribe = true;
+                    break;
                 default:
                     throw new NotImplementedException("No processing implemented for " + query.Query.Kind);
             }
@@ -61,11 +67,70 @@ namespace ODataSparqlLib
                     return ProcessNode(queryNode as EntitySetQueryNode);
                 case QueryNodeKind.OrderBy:
                     return ProcessNode(queryNode as OrderByQueryNode);
+                case QueryNodeKind.KeyLookup:
+                    return ProcessKeyLookup(queryNode as KeyLookupQueryNode);
                 default:
                     throw new NotImplementedException("No processing implemented for " + queryNode.Kind);
             }
         }
 
+        private object ProcessKeyLookup(KeyLookupQueryNode keyLookup)
+        {
+            var keyPropertyValues = keyLookup.KeyPropertyValues.ToList();
+            if (keyPropertyValues.Count == 1)
+            {
+                var kpv = keyPropertyValues[0];
+                var rootEntity = kpv.KeyProperty.DeclaringType as IEdmEntityType; // Get the entity that declares the Id property
+                if (rootEntity != null)
+                {
+                    string prefix;
+                    if (_map.TryGetIdentifierPrefixForProperty(rootEntity.FullName(), kpv.KeyProperty.Name, out prefix))
+                    {
+                        object keyValue = ProcessNode(kpv.KeyValue);
+                        if (keyValue != null)
+                        {
+                            return new Uri(prefix + keyValue);
+                        }
+                    }
+                }
+            }
+            throw new Exception("Could not process key lookup");
+        }
+
+        private object ProcessNode(NavigationPropertyNode navigation)
+        {
+            var source = ProcessNode(navigation.Source);
+            if (source != null)
+            {
+                IPatternItem sourcePatternItem =
+                    source is Uri ? (IPatternItem) new UriPatternItem(source.ToString()) : new VariablePatternItem(source.ToString());
+
+                string propertyUri;
+                bool isInverse;
+                string targetVar = _sparqlModel.NextVariable();
+                _map.TryGetUriForNavigationProperty(navigation.NavigationProperty.DeclaringEntityType().FullName(),
+                                                    navigation.NavigationProperty.Name,
+                                                    out propertyUri,
+                                                    out isInverse);
+                if (isInverse)
+                {
+                    // Target is the subject of a triple
+                    _sparqlModel.CurrentGraphPattern.Add(
+                        new TriplePattern(new VariablePatternItem(targetVar),
+                                          new UriPatternItem(propertyUri),
+                                          sourcePatternItem));
+                }
+                else
+                {
+                    _sparqlModel.CurrentGraphPattern.Add(
+                        new TriplePattern(sourcePatternItem,
+                            new UriPatternItem(propertyUri),
+                            new VariablePatternItem(targetVar)));
+                }
+                return targetVar;
+            }
+            throw new Exception("Cannot process navigation node as source could not be processed.");
+        }
         private object ProcessNode(OrderByQueryNode orderByQuery)
         {
             // TODO: This currently assumes a single property lookup

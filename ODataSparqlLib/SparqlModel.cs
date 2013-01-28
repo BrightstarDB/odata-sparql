@@ -46,15 +46,28 @@ namespace ODataSparqlLib
         {
             if (!String.IsNullOrEmpty(DescribeResource))
             {
-                return String.Format("DESCRIBE <{0}>", DescribeResource);
+                return String.Format("CONSTRUCT {{ <{0}> ?p ?o }} WHERE {{ <{0}> ?p ?o }}", DescribeResource);
             }
             var queryBuilder = new StringBuilder();
             if (SelectVariables.Count > 0)
             {
-                queryBuilder.Append(IsDescribe ? "DESCRIBE " : "SELECT ");
-                foreach (string sv in SelectVariables)
+                if (IsDescribe)
                 {
-                    queryBuilder.AppendFormat("?{0} ", sv);
+                    queryBuilder.Append("CONSTRUCT {");
+                    foreach (var sv in SelectVariables)
+                    {
+                        queryBuilder.AppendFormat("?{0} ?{0}_p ?{0}_o . ", sv);
+                        RootGraphPattern.Add(new TriplePattern(new VariablePatternItem(sv), new VariablePatternItem(sv+"_p"), new VariablePatternItem(sv+"_o")  ));
+                    }
+                    queryBuilder.Append("} ");
+                }
+                else
+                {
+                    queryBuilder.Append("SELECT ");
+                    foreach (string sv in SelectVariables)
+                    {
+                        queryBuilder.AppendFormat("?{0} ", sv);
+                    }
                 }
             }
             else

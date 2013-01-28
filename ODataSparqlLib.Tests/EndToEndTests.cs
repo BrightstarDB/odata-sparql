@@ -31,7 +31,8 @@ namespace ODataSparqlLib.Tests
                 Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out _dbpediaModel,
                                                             out errors);
             }
-            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/", NameMapping.Unchanged,
+            _dbpediaMap = new SparqlMap("dbpedia.metadata", 
+                "http://dbpedia.org/ontology/", NameMapping.Unchanged,
                 "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
             _sparqlEndpoint = new SparqlRemoteEndpoint(new Uri("http://dbpedia.org/sparql"),
                                                        "http://dbpedia.org")
@@ -69,7 +70,6 @@ namespace ODataSparqlLib.Tests
         }
 
         [TestMethod]
-        [Ignore] // Currently fails because of an unimplemented part of the ODATA query lib
         public void TestSinglePropertyNavigation()
         {
             const string odataQuery = "http://example.org/odata/Films('Un_Chien_Andalou')/Director";
@@ -79,10 +79,10 @@ namespace ODataSparqlLib.Tests
                 _dbpediaModel);
             var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
             sparqlGenerator.ProcessQuery(parsedQuery);
+            Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
             var validator = GenerateAndExecuteSparql(parsedQuery, _dbpediaMap);
-            Console.Write(validator.ToString());
-            validator.AssertRoot("atom:entry");
-           
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:feed");
         }
 
         [TestMethod]
