@@ -488,6 +488,18 @@ namespace ODataSparqlLib.Tests
         //    Assert.AreEqual("EXISTS {?v1 a <http://dbpedia.org/ontology/Work>}", sparql.RootGraphPattern.FilterExpressions[0]);
         //}
 
+
+        
+        // Not implemented yet because the OData parser library does not support $select or $expand
+        //[TestMethod]
+        //public void TestSelectSimpleProperties()
+        //{
+        //    var sparql = ProcessQuery("http://example.org/odata/Films?$select=Name,Runtime,ReleaseDate");
+        //    Assert.IsNotNull(sparql);
+        //    Console.WriteLine(sparql.GetSparqlRepresentation());
+        //    Assert.IsFalse(sparql.IsDescribe);
+        //}
+
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);
