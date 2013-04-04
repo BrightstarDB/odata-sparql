@@ -301,6 +301,14 @@ namespace ODataSparqlLib
                 case "year":
                     return BindYear(fnNode);
 
+                // Math functions
+                case "round":
+                    return BindRound(fnNode);
+                case "ceiling":
+                    return BindCeiling(fnNode);
+                case "floor":
+                    return BindFloor(fnNode);
+
                 default:
                     throw new NotImplementedException("No support for function " + fnNode.Name);
             }
@@ -396,6 +404,24 @@ namespace ODataSparqlLib
         {
             var args = fnNode.Arguments.Select(BindArgument).ToList();
             return "year(" + args[0] + ")";
+        }
+
+        private string BindRound(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "round(" + args[0] + ")";
+        }
+
+        private string BindCeiling(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "ceil(" + args[0] + ")";
+        }
+
+        private string BindFloor(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "floor(" + args[0] + ")";
         }
 
         private object ProcessConstant(ConstantQueryNode constNode)

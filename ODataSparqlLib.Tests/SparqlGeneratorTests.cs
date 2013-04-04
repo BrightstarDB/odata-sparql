@@ -434,6 +434,40 @@ namespace ODataSparqlLib.Tests
         }
 
         #endregion
+
+        #region Math Functions
+
+        [TestMethod]
+        public void TestFnRound()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=round(AnnualTemperature) eq 30");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"round(?v2) = 30", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnFloor()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=floor(AnnualTemperature) eq 30");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"floor(?v2) = 30", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnCeiling()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=ceiling(AnnualTemperature) eq 30");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"ceil(?v2) = 30", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        #endregion
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);
