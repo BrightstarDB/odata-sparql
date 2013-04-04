@@ -257,6 +257,14 @@ namespace ODataSparqlLib.Tests
         }
 
         [TestMethod]
+        [ExpectedException(typeof(NotSupportedException))]
+        public void TestModulo()
+        {
+            // SPARQL has no equivalent to the OData mod operator
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature mod 2 eq 0");
+        }
+
+        [TestMethod]
         public void TestCombinedArithmeticOperators()
         {
             var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature mul (9 div 5) add 32 gt 80");

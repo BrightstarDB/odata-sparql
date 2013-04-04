@@ -559,6 +559,8 @@ namespace ODataSparqlLib
                     return "(" + left + " * " + right + ")";
                 case BinaryOperatorKind.Divide:
                     return "(" + left + " / " + right + ")";
+                case BinaryOperatorKind.Modulo:
+                    throw new NotSupportedException("There is no SPARQL equivalent for the OData mod operator");
                 default:
                     throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);
             }
