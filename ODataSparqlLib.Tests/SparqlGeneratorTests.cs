@@ -266,6 +266,7 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual("((?v2 * (9 / 5)) + 32) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
         }
 
+        #region OData String Functions
         [TestMethod]
         public void TestFnSubstringOf()
         {
@@ -369,7 +370,70 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
             Assert.AreEqual(@"concat(?v2, 'bar') = 'foobar'", sparql.RootGraphPattern.FilterExpressions[0]);
         }
+        #endregion
 
+        #region OData Date Functions
+        [TestMethod]
+        public void TestFnDay()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=day(ReleaseDate) eq 20");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"day(?v2) = 20", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnMonth()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=month(ReleaseDate) eq 8");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"month(?v2) = 8", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnYear()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=year(ReleaseDate) eq 1920");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"year(?v2) = 1920", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnHour()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=hour(ReleaseDate) eq 20");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"hours(?v2) = 20", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnMinute()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=minute(ReleaseDate) eq 21");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"minutes(?v2) = 21", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnSecond()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=second(ReleaseDate) eq 22");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"seconds(?v2) = 22", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        #endregion
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);

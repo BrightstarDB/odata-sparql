@@ -30,6 +30,7 @@
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/property/runtime"/>
         </Property>
         <Property Name="ImdbId" Type="Edm.String" Nullable="true"/>
+        <Property Name="ReleaseDate" Type="Edm.DateTime" Nullable="true"/>
         <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
       </EntityType>
       

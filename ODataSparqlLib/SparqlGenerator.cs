@@ -286,6 +286,21 @@ namespace ODataSparqlLib
                     return BindTrim(fnNode);
                 case "concat":
                     return BindConcat(fnNode);
+                    
+                // Date Functions
+                case "day":
+                    return BindDay(fnNode);
+                case "hour":
+                    return BindHour(fnNode);
+                case "minute":
+                    return BindMinute(fnNode);
+                case "month":
+                    return BindMonth(fnNode);
+                case "second":
+                    return BindSecond(fnNode);
+                case "year":
+                    return BindYear(fnNode);
+
                 default:
                     throw new NotImplementedException("No support for function " + fnNode.Name);
             }
@@ -345,6 +360,42 @@ namespace ODataSparqlLib
         {
             var args = fnNode.Arguments.Select(BindArgument).ToList();
             return "concat(" + String.Join(", ", args) + ")";
+        }
+
+        private string BindDay(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "day(" + args[0] + ")";
+        }
+
+        private string BindHour(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "hours(" + args[0] + ")";
+        }
+
+        private string BindMinute(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "minutes(" + args[0] + ")";
+        }
+
+        private string BindMonth(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "month(" + args[0] + ")";
+        }
+
+        private string BindSecond(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "seconds(" + args[0] + ")";
+        }
+
+        private string BindYear(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "year(" + args[0] + ")";
         }
 
         private object ProcessConstant(ConstantQueryNode constNode)
