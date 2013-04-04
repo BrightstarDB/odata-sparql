@@ -205,6 +205,17 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual("(?v2 > 1000000) || (?v3 > 500.0)", sparql.RootGraphPattern.FilterExpressions[0]);
         }
 
+        [TestMethod]
+        public void TestLogicalNot()
+        {
+            var sparql =
+                ProcessQuery("http://example.org/odata/Places?$filter=not (PopulationTotal gt 1000000 or Elevation gt 500.0m)");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("!((?v2 > 1000000) || (?v3 > 500.0))", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);

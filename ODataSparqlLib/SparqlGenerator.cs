@@ -238,10 +238,14 @@ namespace ODataSparqlLib
                     {
                         return Convert.ToDecimal(sourceValue);
                     }
-                    throw new NotImplementedException("Haven't yet implemented convert to type " + convertNode.TargetType);
+                    throw new NotImplementedException("Haven't yet implemented convert to type " +
+                                                      convertNode.TargetType);
                 case QueryNodeKind.BinaryOperator:
                     var binaryOperatorNode = queryNode as BinaryOperatorQueryNode;
                     return BindOperator(binaryOperatorNode);
+                case QueryNodeKind.UnaryOperator:
+                    var unaryOperatorNode = queryNode as UnaryOperatorQueryNode;
+                    return BindOperator(unaryOperatorNode);
                 case QueryNodeKind.PropertyAccess:
                     return ProcessNode(queryNode as PropertyAccessQueryNode);
                 default:
@@ -316,6 +320,22 @@ namespace ODataSparqlLib
                                   new UriPatternItem(propertyTypeUri),
                                   new VariablePatternItem(propertyVar)));
             return propertyVar;
+        }
+
+        private string BindOperator(UnaryOperatorQueryNode unaryOperatorNode)
+        {
+            var operand = unaryOperatorNode.Operand is ConstantQueryNode
+                              ? MakeSparqlConstant((unaryOperatorNode.Operand as ConstantQueryNode).Value)
+                              : ProcessNode(unaryOperatorNode.Operand);
+            switch (unaryOperatorNode.OperatorKind)
+            {
+                case UnaryOperatorKind.Not:
+                    return "!(" + operand + ")";
+                case UnaryOperatorKind.Negate:
+                    return "-" + operand + "";
+                default:
+                    throw new NotImplementedException("No support for unary operator " + unaryOperatorNode.OperatorKind);
+            }
         }
 
         private string BindOperator(BinaryOperatorQueryNode binaryOperatorNode)
