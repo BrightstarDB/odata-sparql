@@ -75,6 +75,8 @@ namespace ODataSparqlLib
                     return ProcessSkip(queryNode as SkipQueryNode);
                     case QueryNodeKind.Top:
                     return ProcessTop(queryNode as TopQueryNode);
+                case QueryNodeKind.PropertyAccess:
+                    return ProcessNode(queryNode as PropertyAccessQueryNode);
                 default:
                     throw new NotImplementedException("No processing implemented for " + queryNode.Kind);
             }
@@ -253,9 +255,96 @@ namespace ODataSparqlLib
                     return BindOperator(unaryOperatorNode);
                 case QueryNodeKind.PropertyAccess:
                     return ProcessNode(queryNode as PropertyAccessQueryNode);
+                case QueryNodeKind.SingleValueFunctionCall:
+                    return BindSingleValueFunctionCall(queryNode as SingleValueFunctionCallQueryNode);
                 default:
                     throw new NotImplementedException("No support for " + queryNode.Kind);
             }
+        }
+
+        private string BindSingleValueFunctionCall(SingleValueFunctionCallQueryNode fnNode)
+        {
+            switch (fnNode.Name.ToLowerInvariant())
+            {
+                case "substringof":
+                    return BindSubstringOf(fnNode);
+                case "endswith":
+                    return BindEndsWith(fnNode);
+                case "startswith":
+                    return BindStartsWith(fnNode);
+                case "length":
+                    return BindLength(fnNode);
+                case "indexof":
+                    throw new NotSupportedException("SPARQL does not support an equivalent to OData indexof(str)");
+                case "substring":
+                    return BindSubstring(fnNode);
+                case "tolower":
+                    return BindToLower(fnNode);
+                case "toupper":
+                    return BindToUpper(fnNode);
+                case "trim":
+                    return BindTrim(fnNode);
+                case "concat":
+                    return BindConcat(fnNode);
+                default:
+                    throw new NotImplementedException("No support for function " + fnNode.Name);
+            }
+        }
+
+        private string BindEndsWith(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "strends(" + args[0] + ", " + args[1] + ")";
+        }
+
+        private string BindStartsWith(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "strstarts(" + args[0] + ", " + args[1] + ")";
+        }
+
+        private string BindLength(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "strlen(" + args[0] + ")";
+        }
+
+        private string BindSubstring(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "substr(" + String.Join(", ", args.Take(3)) + ")";
+        }
+
+        private string BindSubstringOf(SingleValueFunctionCallQueryNode fnNode)
+        {
+            // SPARQL equivalent is contains(str, str) with argument ordering switched
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "contains(" + args[1] + ", " + args[0] + ")";
+        }
+
+        private string BindToLower(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "lcase(" + args[0] + ")";
+        }
+
+        private string BindToUpper(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "ucase(" + args[0] + ")";
+        }
+
+        private string BindTrim(SingleValueFunctionCallQueryNode fnNode)
+        {
+            // SPARQL has no trim function, so we use regular expressions with replace()
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "replace(" + args[0] + @", '^\s+|\s+$', '')"; // replace ws at start or end of string with empty string
+        }
+
+        private string BindConcat(SingleValueFunctionCallQueryNode fnNode)
+        {
+            var args = fnNode.Arguments.Select(BindArgument).ToList();
+            return "concat(" + String.Join(", ", args) + ")";
         }
 
         private object ProcessConstant(ConstantQueryNode constNode)
@@ -268,16 +357,21 @@ namespace ODataSparqlLib
             if (value is string)
             {
                 var stringConstant = "'" + value + "'";
-                if (languageCode == null) languageCode = _defaultLanguageCode;
-                if (languageCode != null) stringConstant += "@" + languageCode;
+                if (String.IsNullOrEmpty(languageCode)) languageCode = _defaultLanguageCode;
+                if (!String.IsNullOrEmpty(languageCode)) stringConstant += "@" + languageCode;
                 return stringConstant;
             }
             if (value is Int32)
             {
                 return ((int)value).ToString(CultureInfo.InvariantCulture);
             }
+            if (value is bool)
+            {
+                return ((bool) value) ? "true" : "false";
+            }
             throw new NotImplementedException("No SPARQL conversion defined for constant value of type " + value.GetType());
         }
+
         private object ProcessNode(PropertyAccessQueryNode propertyAccessQueryNode)
         {
             var srcVariable = AssertInstancesVariable(propertyAccessQueryNode.Source.TypeReference);
@@ -329,6 +423,11 @@ namespace ODataSparqlLib
                                   new UriPatternItem(propertyTypeUri),
                                   new VariablePatternItem(propertyVar)));
             return propertyVar;
+        }
+
+        private object BindArgument(QueryNode arg)
+        {
+            return arg is ConstantQueryNode ? MakeSparqlConstant((arg as ConstantQueryNode).Value) : ProcessNode(arg);
         }
 
         private string BindOperator(UnaryOperatorQueryNode unaryOperatorNode)

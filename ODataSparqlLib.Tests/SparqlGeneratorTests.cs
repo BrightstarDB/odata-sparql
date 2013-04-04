@@ -265,6 +265,111 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
             Assert.AreEqual("((?v2 * (9 / 5)) + 32) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
         }
+
+        [TestMethod]
+        public void TestFnSubstringOf()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=substringof('foo', Name) eq true");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("contains(?v2, 'foo') = true", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnEndsWith()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=endswith(Name, 'foo') eq true");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("strends(?v2, 'foo') = true", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnStartsWith()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=startswith(Name, 'foo') eq true");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("strstarts(?v2, 'foo') = true", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnLength()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=length(Name) gt 19");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("strlen(?v2) > 19", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(NotSupportedException))]
+        public void TestFnIndexOf()
+        {
+            // No equivalent to indexof in SPARQL
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=indexof(Name, 'foo') gt 19");
+        }
+
+        [TestMethod]
+        public void TestFnSubstring()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=substring(Name, 1) eq 'foo'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("substr(?v2, 1) = 'foo'", sparql.RootGraphPattern.FilterExpressions[0]);
+
+            sparql = ProcessQuery("http://example.org/odata/Films?$filter=substring(Name, 1, 3) eq 'foo'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("substr(?v2, 1, 3) = 'foo'", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnToLower()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=tolower(Name) eq 'foo'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("lcase(?v2) = 'foo'", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnToUpper()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=toupper(Name) eq 'foo'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("ucase(?v2) = 'foo'", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnTrim()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=trim(Name) eq 'foo'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"replace(?v2, '^\s+|\s+$', '') = 'foo'", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestFnConcat()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=concat(Name, 'bar') eq 'foobar'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual(@"concat(?v2, 'bar') = 'foobar'", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);
