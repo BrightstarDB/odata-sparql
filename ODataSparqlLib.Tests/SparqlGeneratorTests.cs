@@ -468,6 +468,18 @@ namespace ODataSparqlLib.Tests
         }
 
         #endregion
+
+        // Not implemented yet because the OData parser library does not support isof
+        //[TestMethod]
+        //public void TestFnIsOf()
+        //{
+        //    var sparql = ProcessQuery("http://example.org/odata/Works?$filter=isof('DBPedia.Film')");
+        //    Assert.IsNotNull(sparql);
+        //    Console.WriteLine(sparql);
+        //    Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+        //    Assert.AreEqual("EXISTS {?v1 a <http://dbpedia.org/ontology/Work>}", sparql.RootGraphPattern.FilterExpressions[0]);
+        //}
+
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);

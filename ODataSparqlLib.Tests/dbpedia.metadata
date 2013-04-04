@@ -89,6 +89,7 @@
         <EntitySet Name="Films" EntityType="DBPedia.Film"/>
         <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
         <EntitySet Name="Places" EntityType="DBPedia.Place"/>
+        <EntitySet Name="Works" EntityType="DBPedia.Work"/>
         <AssociationSet Name="Film_Director" Association="DBPedia.Film_Director">
           <End Role="Film" EntitySet="Films"/>
           <End Role="Director" EntitySet="Persons"/>
