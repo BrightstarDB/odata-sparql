@@ -234,7 +234,11 @@ namespace ODataSparqlLib
                     {
                         return sourceValue.ToString();
                     }
-                    throw new NotImplementedException("Haven't yet implemented convert to types other than string");
+                    if (convertNode.TargetType.IsDecimal())
+                    {
+                        return Convert.ToDecimal(sourceValue);
+                    }
+                    throw new NotImplementedException("Haven't yet implemented convert to type " + convertNode.TargetType);
                 case QueryNodeKind.BinaryOperator:
                     var binaryOperatorNode = queryNode as BinaryOperatorQueryNode;
                     return BindOperator(binaryOperatorNode);
@@ -328,6 +332,18 @@ namespace ODataSparqlLib
                     return left + " = " + right;
                 case BinaryOperatorKind.GreaterThan:
                     return left + " > " + right;
+                case BinaryOperatorKind.LessThan:
+                    return left + " < " + right;
+                case BinaryOperatorKind.NotEqual:
+                    return left + " != " + right;
+                case BinaryOperatorKind.GreaterThanOrEqual:
+                    return left + " >= " + right;
+                case BinaryOperatorKind.LessThanOrEqual:
+                    return left + " <= " + right;
+                case BinaryOperatorKind.And:
+                    return "(" + left + ") && (" + right + ")";
+                case BinaryOperatorKind.Or:
+                    return "(" + left + ") || (" + right + ")";
                 default:
                     throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);
             }

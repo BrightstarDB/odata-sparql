@@ -124,11 +124,85 @@ namespace ODataSparqlLib.Tests
         }
 
         [TestMethod]
-        public void TestGtOperator()
+        public void TestGtOperatorNumber()
         {
             var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal gt 1000000");
             Assert.IsNotNull(sparql);
             Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 > 1000000", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestLtOperatorNumber()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal lt 50");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 < 50", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestEqOperatorNumber()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal eq 500");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 = 500", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestNeOperatorNumber()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal ne 500");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 != 500", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestLeOperatorNumber()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal le 500");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 <= 500", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestGeOperatorNumber()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal ge 500");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("?v2 >= 500", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestLogicalAnd()
+        {
+            var sparql =
+                ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal gt 1000000 and Elevation gt 500.0m");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 > 1000000) && (?v3 > 500.0)", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestLogicalOr()
+        {
+            var sparql =
+                ProcessQuery("http://example.org/odata/Places?$filter=PopulationTotal gt 1000000 or Elevation gt 500.0m");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 > 1000000) || (?v3 > 500.0)", sparql.RootGraphPattern.FilterExpressions[0]);
         }
 
         private SparqlModel ProcessQuery(string odataQuery)
