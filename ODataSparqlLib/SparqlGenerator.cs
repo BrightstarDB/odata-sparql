@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -226,20 +227,24 @@ namespace ODataSparqlLib
                 case QueryNodeKind.Convert:
                     var convertNode = queryNode as ConvertQueryNode;
                     var sourceValue = ProcessNode(convertNode.Source);
-                    if (convertNode.TargetType.IsInt32())
+                    if (convertNode.Source is ConstantQueryNode)
                     {
-                        return Convert.ToInt32(sourceValue);
+                        if (convertNode.TargetType.IsInt32())
+                        {
+                            return Convert.ToInt32(sourceValue);
+                        }
+                        if (convertNode.TargetType.IsString())
+                        {
+                            return sourceValue.ToString();
+                        }
+                        if (convertNode.TargetType.IsDecimal())
+                        {
+                            return Convert.ToDecimal(sourceValue);
+                        }
+                        throw new NotImplementedException("Haven't yet implemented convert to type " +
+                                                          convertNode.TargetType);
                     }
-                    if (convertNode.TargetType.IsString())
-                    {
-                        return sourceValue.ToString();
-                    }
-                    if (convertNode.TargetType.IsDecimal())
-                    {
-                        return Convert.ToDecimal(sourceValue);
-                    }
-                    throw new NotImplementedException("Haven't yet implemented convert to type " +
-                                                      convertNode.TargetType);
+                    return sourceValue;
                 case QueryNodeKind.BinaryOperator:
                     var binaryOperatorNode = queryNode as BinaryOperatorQueryNode;
                     return BindOperator(binaryOperatorNode);
@@ -266,6 +271,10 @@ namespace ODataSparqlLib
                 if (languageCode == null) languageCode = _defaultLanguageCode;
                 if (languageCode != null) stringConstant += "@" + languageCode;
                 return stringConstant;
+            }
+            if (value is Int32)
+            {
+                return ((int)value).ToString(CultureInfo.InvariantCulture);
             }
             throw new NotImplementedException("No SPARQL conversion defined for constant value of type " + value.GetType());
         }
@@ -348,6 +357,7 @@ namespace ODataSparqlLib
                             : ProcessNode(binaryOperatorNode.Right);
             switch (binaryOperatorNode.OperatorKind)
             {
+                // Logical operators
                 case BinaryOperatorKind.Equal:
                     return left + " = " + right;
                 case BinaryOperatorKind.GreaterThan:
@@ -364,6 +374,15 @@ namespace ODataSparqlLib
                     return "(" + left + ") && (" + right + ")";
                 case BinaryOperatorKind.Or:
                     return "(" + left + ") || (" + right + ")";
+                // Arithmetic operators
+                case BinaryOperatorKind.Add:
+                    return "(" + left + " + " + right + ")";
+                case BinaryOperatorKind.Subtract:
+                    return "(" + left + " - " + right + ")";
+                case BinaryOperatorKind.Multiply:
+                    return "(" + left + " * " + right + ")";
+                case BinaryOperatorKind.Divide:
+                    return "(" + left + " / " + right + ")";
                 default:
                     throw new NotImplementedException("No support for " + binaryOperatorNode.OperatorKind);
             }

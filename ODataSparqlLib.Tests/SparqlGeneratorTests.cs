@@ -216,6 +216,55 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual("!((?v2 > 1000000) || (?v3 > 500.0))", sparql.RootGraphPattern.FilterExpressions[0]);
         }
 
+        [TestMethod]
+        public void TestAddition()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature add 32 gt 80");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 + 32) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestSubtraction()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature sub 32 gt 30");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 - 32) > 30", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestMultiplication()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature mul 9 gt 80");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 * 9) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestDivision()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature div 5 gt 80");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("(?v2 / 5) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestCombinedArithmeticOperators()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Places?$filter=AnnualTemperature mul (9 div 5) add 32 gt 80");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            Assert.AreEqual("((?v2 * (9 / 5)) + 32) > 80", sparql.RootGraphPattern.FilterExpressions[0]);
+        }
         private SparqlModel ProcessQuery(string odataQuery)
         {
             var generator = new SparqlGenerator(_dbpediaMap);
