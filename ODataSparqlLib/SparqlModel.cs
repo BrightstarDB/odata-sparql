@@ -24,6 +24,7 @@ namespace ODataSparqlLib
         public Dictionary<string, SparqlVariableInfo> VariableType { get; private set; }
         public bool IsDescribe { get; set; }
         public string DescribeResource { get; private set; }
+        public int? Offset { get; set; }
         public int? Limit { get; set; }
         public ISparqlOrdering Ordering { get; set; }
         public GraphPattern CurrentGraphPattern { get; private set; }

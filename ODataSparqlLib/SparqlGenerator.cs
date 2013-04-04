@@ -41,10 +41,8 @@ namespace ODataSparqlLib
                     _sparqlModel.IsDescribe = true;
                     break;
                 case QueryNodeKind.Top:
-                    var top = query.Query as TopQueryNode;
-                    ProcessNode(top.Collection);
-                    var processedLimit = ProcessNode(top.Amount);
-                    _sparqlModel.Limit = Convert.ToInt32(processedLimit);
+                case QueryNodeKind.Skip:
+                    ProcessNode(query.Query);
                     break;
                 case QueryNodeKind.Segment:
                     var navigation = query.Query as NavigationPropertyNode;
@@ -72,9 +70,27 @@ namespace ODataSparqlLib
                     return ProcessNode(queryNode as OrderByQueryNode);
                 case QueryNodeKind.KeyLookup:
                     return ProcessKeyLookup(queryNode as KeyLookupQueryNode);
+                case QueryNodeKind.Skip:
+                    return ProcessSkip(queryNode as SkipQueryNode);
+                    case QueryNodeKind.Top:
+                    return ProcessTop(queryNode as TopQueryNode);
                 default:
                     throw new NotImplementedException("No processing implemented for " + queryNode.Kind);
             }
+        }
+
+        private object ProcessTop(TopQueryNode top)
+        {
+            var processedLimit = ProcessNode(top.Amount);
+            _sparqlModel.Limit = Convert.ToInt32(processedLimit);
+            return ProcessNode(top.Collection);
+        }
+
+        private object ProcessSkip(SkipQueryNode skip)
+        {
+            var processedOffset = ProcessNode(skip.Amount);
+            _sparqlModel.Offset = Convert.ToInt32(processedOffset);
+            return ProcessNode(skip.Collection);
         }
 
         private object ProcessKeyLookup(KeyLookupQueryNode keyLookup)
@@ -134,6 +150,8 @@ namespace ODataSparqlLib
             }
             throw new Exception("Cannot process navigation node as source could not be processed.");
         }
+
+
         private object ProcessNode(OrderByQueryNode orderByQuery)
         {
             // TODO: This currently assumes a single property lookup

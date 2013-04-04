@@ -75,6 +75,37 @@ namespace ODataSparqlLib.Tests
         }
 
         [TestMethod]
+        public void TestSkip()
+        {
+            var generator = new SparqlGenerator(_dbpediaMap);
+            var queryDescriptor = QueryDescriptorQueryNode.ParseUri(
+                new Uri("http://example.org/odata/Films?$skip=5"),
+                new Uri("http://example.org/odata/"), _dbpediaModel);
+            generator.ProcessQuery(queryDescriptor);
+            var sparql = generator.SparqlQueryModel;
+            Assert.IsNotNull(sparql);
+            Assert.IsTrue(sparql.IsDescribe);
+            Assert.AreEqual(5, sparql.Offset);
+        }
+
+        [TestMethod]
+        public void TestSkipAndTop()
+        {
+            var generator = new SparqlGenerator(_dbpediaMap);
+            var queryDescriptor = QueryDescriptorQueryNode.ParseUri(
+                new Uri("http://example.org/odata/Films?$skip=50&$top=10"),
+                new Uri("http://example.org/odata/"),
+                _dbpediaModel);
+            generator.ProcessQuery(queryDescriptor);
+            var sparql = generator.SparqlQueryModel;
+            Assert.IsNotNull(sparql);
+            Assert.IsTrue(sparql.IsDescribe);
+            Assert.AreEqual(1, sparql.RootGraphPattern.TriplePatterns.Count);
+            Assert.AreEqual(10, sparql.Limit);
+            Assert.AreEqual(50, sparql.Offset);
+        }
+
+        [TestMethod]
         public void TestOrderByProperty()
         {
             var generator = new SparqlGenerator(_dbpediaMap);
