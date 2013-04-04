@@ -327,6 +327,7 @@ namespace ODataSparqlLib
 
         internal void CreateEntryFromGraphWithVariable(IGraph resultsGraph, string variableName, string entityType)
         {
+            if (resultsGraph.IsEmpty) return;
             // Determine the resource that was bound to the specified SPARQL variable
             var resource = resultsGraph.GetTriplesWithPredicateObject(
                 resultsGraph.CreateUriNode(new Uri("http://brightstardb.com/odata-sparql/variable-binding")),
@@ -335,6 +336,7 @@ namespace ODataSparqlLib
                         .Cast<IUriNode>()
                         .Select(u => u.Uri)
                         .FirstOrDefault();
+            if (resource == null) return;
             CreateEntryFromGraph(resultsGraph, resource.ToString(), entityType);
         }
     }

@@ -1,4 +1,7 @@
-﻿namespace ODataSparqlLib
+﻿using System;
+using System.Web;
+
+namespace ODataSparqlLib
 {
     public class UriPatternItem : IPatternItem
     {
@@ -7,7 +10,7 @@
         public string SparqlRepresentation { get { return "<" + Uri + ">"; } }
         public UriPatternItem(string uri)
         {
-            Uri = uri;
+            Uri = System.Uri.EscapeUriString(uri);
         }
     }
 }
