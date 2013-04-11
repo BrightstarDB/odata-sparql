@@ -137,6 +137,11 @@ namespace ODataSparqlLib
                         IsInverse = GetBooleanAnnotationValue(property, AnnotationsNamespace, "IsInverse", false),
                         IdentifierPrefix = GetStringAnnotationValue(property, AnnotationsNamespace, "IdentifierPrefix")
                     };
+                // If the property maps to the resource identifier, do not record a property URI 
+                if (!String.IsNullOrEmpty(mapping.IdentifierPrefix))
+                {
+                    mapping.Uri = null;
+                }
 
                 _propertyUriMap[entityPropertyName] = mapping;
                 if (!declaredPropertyName.Equals(entityPropertyName))
@@ -327,14 +332,38 @@ namespace ODataSparqlLib
                 PropertyMapping propertyMapping;
                 if (_propertyUriMap.TryGetValue(qualifiedTypeName + "." + structuralProperty.Name, out propertyMapping))
                 {
-                    yield return new PropertyInfo
+                    if (!String.IsNullOrEmpty(propertyMapping.Uri))
+                    {
+                        yield return new PropertyInfo
+                            {
+                                Name = structuralProperty.Name,
+                                PropertyType = structuralProperty.Type,
+                                Uri = propertyMapping.Uri
+                            };
+                    }
+                }
+            }
+        }
+
+        public IdentifierInfo GetIdentifierPropertyMapping(string qualifiedTypeName)
+        {
+            var edmType = AssertEntityType(qualifiedTypeName);
+            
+            var key = edmType.DeclaredKey == null ? edmType.Key().FirstOrDefault() : edmType.DeclaredKey.FirstOrDefault();
+            if (key != null)
+            {
+                PropertyMapping propertyMapping;
+                if (_propertyUriMap.TryGetValue(qualifiedTypeName + "." + key.Name, out propertyMapping))
+                {
+                    return new IdentifierInfo
                         {
-                            Name = structuralProperty.Name,
-                            PropertyType = structuralProperty.Type,
-                            Uri = propertyMapping.Uri
+                            Name = key.Name, 
+                            PropertyType = key.Type,
+                            IdentifierPrefix = propertyMapping.IdentifierPrefix
                         };
                 }
             }
+            return null;
         }
 
         public IEnumerable<PropertyInfo> GetAssociationPropertyMappings(string qualifiedTypeName)

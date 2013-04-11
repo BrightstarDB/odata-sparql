@@ -2,7 +2,7 @@
 
 namespace ODataSparqlLib
 {
-    public class TriplePattern
+    public class TriplePattern : BaseTriplePattern
     {
         public IPatternItem Subject { get; set; }
         public IPatternItem Predicate { get; set; }
@@ -15,7 +15,7 @@ namespace ODataSparqlLib
             Object = @object;
         }
 
-        public string GetSparqlRepresentation()
+        public override string GetSparqlRepresentation()
         {
             return String.Format("{0} {1} {2}", Subject.SparqlRepresentation, Predicate.SparqlRepresentation,
                                  Object.SparqlRepresentation);

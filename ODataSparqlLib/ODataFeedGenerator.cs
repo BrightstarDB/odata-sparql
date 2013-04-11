@@ -82,7 +82,11 @@ namespace ODataSparqlLib
                 }
             }
 
-            var feed = new ODataFeed {Count = entries.Count, Id = _baseUri + _map.GetTypeSet(entityType)};
+            var feed = new ODataFeed {Id = _baseUri + _map.GetTypeSet(entityType)};
+            if (_writerSettings.Version >= ODataVersion.V2)
+            {
+                feed.Count = entries.Count;
+            }
             feedWriter.WriteStart(feed);
             foreach (var entry in entries)
             {
@@ -133,6 +137,13 @@ namespace ODataSparqlLib
                 };
             var subject = resultsGraph.CreateUriNode(UriFactory.Create(entryResource));
             var properties = new List<ODataProperty>();
+
+            var identifierPropertyMapping = _map.GetIdentifierPropertyMapping(entryType);
+            if (identifierPropertyMapping != null)
+            {
+                properties.Add(new ODataProperty{Name=identifierPropertyMapping.Name, Value=resourceId});
+            }
+
             foreach (var propertyMapping in _map.GetStructuralPropertyMappings(entryType))
             {
                 var predicate = resultsGraph.CreateUriNode(UriFactory.Create(propertyMapping.Uri));
@@ -151,34 +162,38 @@ namespace ODataSparqlLib
                 }
             }
 
-            var associationLinks = new List<ODataAssociationLink>();
-            foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
+            if (_writerSettings.Version >= ODataVersion.V3)
             {
-                bool hasMatch = false;
-                if (assocMap.IsInverse)
+                var associationLinks = new List<ODataAssociationLink>();
+                foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
                 {
-                    hasMatch = resultsGraph.GetTriplesWithPredicateObject(
-                        resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri)), subject).Any();
+                    bool hasMatch = false;
+                    if (assocMap.IsInverse)
+                    {
+                        hasMatch = resultsGraph.GetTriplesWithPredicateObject(
+                            resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri)), subject).Any();
+                    }
+                    else
+                    {
+                        hasMatch = resultsGraph.GetTriplesWithSubjectPredicate(
+                            subject, resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
+                    }
+                    // TODO: May need to be more specific here to catch inverse/forward versions of the same
+                    // RDF property being mapped to two different OData properties (e.g. broader and narrower on a category)
+                    // This quick hack will work for now though:
+                    //bool hasMatch = resultsGraph.GetTriplesWithPredicate(resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
+                    if (hasMatch)
+                    {
+                        associationLinks.Add(new ODataAssociationLink
+                            {
+                                Name = assocMap.Name,
+                                Url = new Uri(odataLink + "/" + assocMap.Name)
+                            });
+                    }
                 }
-                else
-                {
-                    hasMatch = resultsGraph.GetTriplesWithSubjectPredicate(
-                        subject, resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
-                }
-                // TODO: May need to be more specific here to catch inverse/forward versions of the same
-                // RDF property being mapped to two different OData properties (e.g. broader and narrower on a category)
-                // This quick hack will work for now though:
-                //bool hasMatch = resultsGraph.GetTriplesWithPredicate(resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
-                if (hasMatch)
-                {
-                    associationLinks.Add(new ODataAssociationLink { Name = assocMap.Name, Url = new Uri(odataLink + "/" + assocMap.Name) });
-                }
+                entry.AssociationLinks = associationLinks;
             }
-            entry.AssociationLinks = associationLinks;
 
-            //entry.AssociationLinks =
-            //    _map.GetAssociationPropertyMappings(entryType)
-            //        .Select(m => new ODataAssociationLink {Name = m.Name, Url = new Uri(odataLink + "/" + m.Name)});
             entry.Properties = properties;
             return entry;
         }

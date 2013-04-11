@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Web;
 using Microsoft.Data.OData;
 using Microsoft.Data.OData.Query;
@@ -28,6 +29,11 @@ namespace ODataSparqlLib
                                                      context.Request.Headers["Accept-Charset"]);
             }
 
+            var requestMessage = new HttpDataRequestMessage(context.Request);
+            ODataVersion effectiveVersion = GetEffectiveODataVersion(requestMessage);
+            messageWriterSettings.Version = effectiveVersion;
+
+            var metadataUri = new Uri(serviceBaseUri, "./$metadata");
             if (serviceBaseUri.Equals(context.Request.Url))
             {
                 // We need to respond with the service document
@@ -41,6 +47,14 @@ namespace ODataSparqlLib
                 // Trimming of trailing slash to normalize - the serviceBaseUri should always have a trailing slash, 
                 // but we will redirect requests that do not to the proper service document url
                 context.Response.RedirectPermanent(serviceBaseUri.ToString(), true);
+            }
+            else if (metadataUri.Equals(context.Request.Url))
+            {
+                context.Response.ContentType = "application/xml";
+                using (var inputStream = File.OpenRead(_config.MetadataPath))
+                {
+                    inputStream.CopyTo(context.Response.OutputStream);
+                }
             }
             else
             {
@@ -58,6 +72,25 @@ namespace ODataSparqlLib
                 sparqlGenerator.SparqlQueryModel.Execute(_config.SparqlEndpoint, feedGenerator);
                 context.Response.ContentType = "application/atom+xml";
             }
+        }
+
+        const ODataVersion ServerMaxVersion = ODataVersion.V3;
+
+        private static ODataVersion GetEffectiveODataVersion(HttpDataRequestMessage requestMessage)
+        {
+            string szDsVersion = requestMessage.GetHeader("DataServiceVersion");
+            if (String.IsNullOrEmpty(szDsVersion))
+            {
+                // Request specified no version, so return with the highest version the server can provide
+                return ServerMaxVersion;
+            }
+
+            var dsVersion = ODataUtils.StringToODataVersion(szDsVersion);
+            string szMaxDsVersion = requestMessage.GetHeader("MaxDataServiceVersion");
+            var maxDsVersion = String.IsNullOrEmpty(szMaxDsVersion)
+                                            ? dsVersion
+                                            : ODataUtils.StringToODataVersion(szMaxDsVersion);
+            return maxDsVersion > ServerMaxVersion ? ServerMaxVersion : maxDsVersion;
         }
     }
 }

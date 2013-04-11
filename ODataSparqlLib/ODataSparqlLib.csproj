@@ -57,8 +57,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseTriplePattern.cs" />
     <Compile Include="GraphPattern.cs" />
+    <Compile Include="HttpDataRequestMessage.cs" />
     <Compile Include="HttpDataResponseMessage.cs" />
+    <Compile Include="IdentifierInfo.cs" />
     <Compile Include="IPatternItem.cs" />
     <Compile Include="NameMapping.cs" />
     <Compile Include="ODataSparqlHandler.cs" />
@@ -75,6 +78,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SparqlModel.cs" />
     <Compile Include="ODataFeedGenerator.cs" />
+    <Compile Include="SubQueryPattern.cs" />
     <Compile Include="TriplePattern.cs" />
     <Compile Include="UriPatternItem.cs" />
     <Compile Include="VariablePatternItem.cs" />

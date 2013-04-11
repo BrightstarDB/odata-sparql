@@ -90,5 +90,27 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual("http://dbpedia.org/property/elevation", map.GetUriForProperty("DBPedia.Place", "Elevation"));
             Assert.AreEqual("http://dbpedia.org/property/annualTemperature", map.GetUriForProperty("DBPedia.Place", "AnnualTemperature"));
         }
+
+        [TestMethod]
+        public void TestIdPropertyMapping()
+        {
+            var map = new SparqlMap("dbpedia.metadata",
+                                    "http://dbpedia.org/ontology/", NameMapping.UpperCamelCase,
+                                    "http://dbpedia.org/property/", NameMapping.LowerCase);
+            Assert.IsNull(map.GetUriForProperty("DBPedia.Thing", "Id"));
+            Assert.IsNull(map.GetUriForProperty("DBPedia.Film", "Id"));
+            Assert.IsFalse(map.GetStructuralPropertyMappings("DBPedia.Thing").Any(m => m.Name.Equals("Id")));
+            Assert.IsFalse(map.GetStructuralPropertyMappings("DBPedia.Film").Any(m=>m.Name.Equals("Id")));
+
+            var idMapping = map.GetIdentifierPropertyMapping("DBPedia.Thing");
+            Assert.IsNotNull(idMapping);
+            Assert.AreEqual("http://dbpedia.org/resource/", idMapping.IdentifierPrefix);
+            Assert.AreEqual("Id", idMapping.Name);
+
+            idMapping = map.GetIdentifierPropertyMapping("DBPedia.Film");
+            Assert.IsNotNull(idMapping);
+            Assert.AreEqual("http://dbpedia.org/resource/", idMapping.IdentifierPrefix);
+            Assert.AreEqual("Id", idMapping.Name);
+        }
     }
 }

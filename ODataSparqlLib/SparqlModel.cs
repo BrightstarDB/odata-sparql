@@ -51,6 +51,7 @@ namespace ODataSparqlLib
                 return String.Format("CONSTRUCT {{ <{0}> ?p ?o }} WHERE {{ <{0}> ?p ?o }}", DescribeResource);
             }
             var queryBuilder = new StringBuilder();
+            bool inSubquery = false;
             if (SelectVariables.Count > 0)
             {
                 if (IsDescribe)
@@ -61,30 +62,19 @@ namespace ODataSparqlLib
                         queryBuilder.AppendFormat("?{0} ?{0}_p ?{0}_o . ", sv);
                         queryBuilder.AppendFormat(
                             "?{0} <http://brightstardb.com/odata-sparql/variable-binding> \"{0}\"", sv);
-                        if (!RootGraphPattern.TriplePatterns.Any(
-                            tp => tp.Subject is VariablePatternItem
-                                  && (tp.Subject as VariablePatternItem).VariableName.Equals(sv)
-                                  && tp.Predicate is VariablePatternItem
-                                  && (tp.Predicate as VariablePatternItem).VariableName.Equals(sv + "_p")
-                                  && tp.Object is VariablePatternItem
-                                  && (tp.Object as VariablePatternItem).VariableName.Equals(sv + "_o")
-                                 )
-                            )
-                        {
-                            RootGraphPattern.Add(new TriplePattern(new VariablePatternItem(sv),
-                                                                   new VariablePatternItem(sv + "_p"),
-                                                                   new VariablePatternItem(sv + "_o")));
-                        }
                     }
-                    queryBuilder.Append("} ");
-                }
-                else
-                {
-                    queryBuilder.Append("SELECT ");
-                    foreach (string sv in SelectVariables)
+                    queryBuilder.Append("} WHERE { ");
+                    foreach (var sv in SelectVariables.Distinct())
                     {
-                        queryBuilder.AppendFormat("?{0} ", sv);
+                        queryBuilder.AppendFormat("?{0} ?{0}_p ?{0}_o . ", sv);
                     }
+                    queryBuilder.Append("{");
+                    inSubquery = true;
+                }
+                queryBuilder.Append("SELECT ");
+                foreach (string sv in SelectVariables)
+                {
+                    queryBuilder.AppendFormat("?{0} ", sv);
                 }
             }
             else
@@ -105,6 +95,10 @@ namespace ODataSparqlLib
             if (Limit.HasValue)
             {
                 queryBuilder.AppendFormat("LIMIT {0} ", Limit);
+            }
+            if (inSubquery)
+            {
+                queryBuilder.Append("} }");
             }
             return queryBuilder.ToString();
         }

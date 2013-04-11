@@ -143,14 +143,15 @@ namespace ODataSparqlLib.Tests
             validator.AssertRoot("atom:feed");
         }
 
-        private XPathValidator GenerateAndExecuteSparql(QueryDescriptorQueryNode parsedQuery, SparqlMap sparqlMap)
+        private XPathValidator GenerateAndExecuteSparql(QueryDescriptorQueryNode parsedQuery, SparqlMap sparqlMap, ODataVersion odataVersion=ODataVersion.V3)
         {
             var sparqlGenerator = new SparqlGenerator(sparqlMap, "en");
             sparqlGenerator.ProcessQuery(parsedQuery);
             var mockMessage = new Mock<IODataResponseMessage>();
             var outputStream = new MemoryStream();
             mockMessage.Setup(m => m.GetStream()).Returns(outputStream);
-            var feedGenerator = new ODataFeedGenerator(mockMessage.Object, sparqlMap, _odataBase, new ODataMessageWriterSettings{Indent = true});
+            var feedGenerator = new ODataFeedGenerator(mockMessage.Object, sparqlMap, _odataBase, 
+                new ODataMessageWriterSettings{Indent = true, Version = odataVersion});
             Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
             sparqlGenerator.SparqlQueryModel.Execute(_sparqlEndpoint, feedGenerator);
             outputStream.Seek(0, SeekOrigin.Begin);

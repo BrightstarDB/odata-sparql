@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <edmx:Edmx xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx" Version="3.0">
-  <edmx:DataServices xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" m:DataServiceVersion="2.0">
+  <edmx:DataServices xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" 
+                     m:DataServiceVersion="3.0">
     <Schema xmlns="http://schemas.microsoft.com/ado/2009/11/edm" Namespace="DBPedia">
       <Using Namespace="ODataSparqlLib.Annotations" Alias="Sparql"/>
 

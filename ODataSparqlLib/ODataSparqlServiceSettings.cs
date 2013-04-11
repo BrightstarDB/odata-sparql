@@ -13,6 +13,12 @@ namespace ODataSparqlLib
         public string Name { get; private set; }
         private readonly HttpServerUtility _server;
         public SparqlMap Map { get; private set; }
+
+        /// <summary>
+        /// Get the path to the file that provides the EDM for the endpoint
+        /// </summary>
+        public string MetadataPath { get; private set; }
+
         public IEdmModel Model { get { return Map.Model; } }
         public SparqlRemoteEndpoint SparqlEndpoint { get; private set; }
         public ODataMessageWriterSettings BaseODataWriterSettings { get; private set; }
@@ -45,12 +51,12 @@ namespace ODataSparqlLib
 
         private void ReadEndpointMetadata(SparqlEndpointConfigurationElement endpoint)
         {
-            var configPath = _server.MapPath(endpoint.Metadata);
-            if (!File.Exists(configPath))
+            MetadataPath = _server.MapPath(endpoint.Metadata);
+            if (!File.Exists(MetadataPath))
             {
                 throw new FileNotFoundException("Cannot find service metadata file");
             }
-            Map = new SparqlMap(configPath, endpoint.DefaultNamespace,
+            Map = new SparqlMap(MetadataPath, endpoint.DefaultNamespace,
                 endpoint.NameMapping,
                 endpoint.DefaultPropertyNamespace,
                 endpoint.PropertyNameMapping);
