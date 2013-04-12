@@ -249,7 +249,7 @@ namespace ODataSparqlLib
                 });
         }
 
-        private List<PropertyInfo> WriteNavigationLinks(ODataWriter entryWriter, Uri entryLink, IGraph resultsGraph,
+        private IEnumerable<PropertyInfo> WriteNavigationLinks(ODataWriter entryWriter, Uri entryLink, IGraph resultsGraph,
                                                         string entryResource, string entryType)
         {
             var subject = resultsGraph.CreateUriNode(UriFactory.Create(entryResource));
@@ -264,7 +264,7 @@ namespace ODataSparqlLib
                 {
                     var navLink = new ODataNavigationLink
                         {
-                            IsCollection = assocMap.PropertyType.IsCollection(),
+                            IsCollection = assocMap.IsCollection,
                             Name = assocMap.Name,
                             Url = new Uri(entryLink + "/" + assocMap.Name)
                         };
@@ -384,6 +384,7 @@ namespace ODataSparqlLib
                 case EdmPrimitiveTypeKind.Byte:
                     return nullable ? new byte?() : 0;
                 case EdmPrimitiveTypeKind.DateTime:
+                case EdmPrimitiveTypeKind.DateTimeOffset:
                     return nullable ? new DateTime?() : DateTime.MinValue;
                 case EdmPrimitiveTypeKind.Decimal:
                     return nullable ? new decimal?() : 0.0m;

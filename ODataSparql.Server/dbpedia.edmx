@@ -51,6 +51,10 @@
                             FromRole="Person" ToRole="DeathPlace"/>
         <NavigationProperty Name="RestingPlace" Relationship="DBPedia.Person_RestingPlace"
                             FromRole="Person" ToRole="RestingPlace"/>
+        <NavigationProperty Name="Influenced" Relationship="DBPedia.Person_Influenced"
+                            FromRole="Person" ToRole="Influenced"/>
+        <NavigationProperty Name="Influences" Relationship="DBPedia.Person_Influences"
+                            FromRole="Person" ToRole="Influence"/>
       </EntityType>
 
       <!-- http://mappings.dbpedia.org/server/ontology/classes/Place -->
@@ -78,6 +82,14 @@
       <Association Name="Person_RestingPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
         <End Role="RestingPlace" Type="DBPedia.Place" Multiplicity="1"/>
+      </Association>
+      <Association Name="Person_Influenced">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="Influenced" Type="DBPedia.Person" Multiplicity="*"/>
+      </Association>
+      <Association Name="Person_Influences">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="Influence" Type="DBPedia.Person" Multiplicity="*"/>
       </Association>
 
       <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">

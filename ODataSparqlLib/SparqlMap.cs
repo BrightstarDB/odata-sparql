@@ -379,7 +379,8 @@ namespace ODataSparqlLib
                             Name = navigationProperty.Name,
                             Uri = propertyMapping.Uri,
                             IsInverse = propertyMapping.IsInverse,
-                            PropertyType = navigationProperty.Type
+                            PropertyType = navigationProperty.Type,
+                            IsCollection = navigationProperty.OwnMultiplicity() == EdmMultiplicity.Many
                         };
                 }
             }

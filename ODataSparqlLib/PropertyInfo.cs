@@ -8,5 +8,6 @@ namespace ODataSparqlLib
         public string Uri { get; set; }
         public IEdmTypeReference PropertyType { get; set; }
         public bool IsInverse { get; set; }
+        public bool IsCollection { get; set; }
     }
 }

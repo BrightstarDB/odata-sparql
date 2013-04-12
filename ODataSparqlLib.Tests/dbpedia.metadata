@@ -4,6 +4,8 @@
     <Schema xmlns="http://schemas.microsoft.com/ado/2009/11/edm" Namespace="DBPedia">
       <Using Namespace="ODataSparqlLib.Annotations" Alias="Sparql"/>
 
+      <!-- The following annotationd depend on a default type URI prefix of "http://dbpedia.org/ontology/" (map UpperCamelCase)
+           and a default property URI prefix of "http://dbpedia.org/property/" (map lowerCamelCase)-->
       <EntityType Name="Thing">
         <Key>
           <PropertyRef Name="Id"/>
@@ -39,12 +41,14 @@
         <Property Name="Name" Type="Edm.String" Nullable="true">
           <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/name"/>
         </Property>
-        <Property Name="BirthDate" Type="Edm.DateTimeOffset" Nullable="true">
-          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/birthDate"/>
-        </Property>
-        <Property Name="DeathDate" Type="Edm.DateTimeOffset" Nullable="true">
-          <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/deathDate"/>
-        </Property>
+        <Property Name="BirthDate" Type="Edm.DateTimeOffset" Nullable="true"/>
+        <Property Name="BirthYear" Type="Int32" Nullable="true"/>
+        <Property Name="DeathYear" Type="Int32" Nullable="true"/>
+        <Property Name="DeathDate" Type="Edm.DateTimeOffset" Nullable="true"/>
+        <NavigationProperty Name="Influenced" Relationship="DBPedia.Person_Influenced"
+                            FromRole="Person" ToRole="Influenced"/>
+        <NavigationProperty Name="InfluencedBy" Relationship="DBPedia.Person_InfluencedBy"
+                            FromRole="Person" ToRole="InfluencedBy"/>
         <NavigationProperty Name="BirthPlace" Relationship="DBPedia.Person_BirthPlace"
                             FromRole="Person" ToRole="BirthPlace">
           <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/birthPlace"/>
@@ -83,6 +87,14 @@
       <Association Name="Person_RestingPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
         <End Role="RestingPlace" Type="DBPedia.Place" Multiplicity="1"/>
+      </Association>
+      <Association Name="Person_Influenced">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="Influenced" Type="DBPedia.Person" Multiplicity="*"/>
+      </Association>
+      <Association Name="Person_InfluencedBy">
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+        <End Role="InfluencedBy" Type="DBPedia.Person" Multiplicity="*"/>
       </Association>
 
       <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">
