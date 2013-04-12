@@ -101,6 +101,10 @@ namespace ODataSparqlLib
                 queryBuilder.Append(" ");
             }
 
+            if (Offset.HasValue)
+            {
+                queryBuilder.AppendFormat("OFFSET {0} ", Offset);
+            }
             if (Limit.HasValue)
             {
                 queryBuilder.AppendFormat("LIMIT {0} ", Limit);
