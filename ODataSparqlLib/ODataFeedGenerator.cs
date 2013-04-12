@@ -92,7 +92,7 @@ namespace ODataSparqlLib
             var feed = new ODataFeed {Id = _baseUri + _map.GetTypeSet(entityType)};
             if (_writerSettings.Version >= ODataVersion.V2)
             {
-                feed.Count = entries.Count;
+                feed.Count = resultsCount;
             }
             if (originalQueryModel != null)
             {
@@ -150,7 +150,11 @@ namespace ODataSparqlLib
             var entryWriter = msgWriter.CreateODataEntryWriter();
             var entry = CreateODataEntry(resultsGraph, entryResource, entryType);
             entryWriter.WriteStart(entry);
-            WriteNavigationLinks(entryWriter, entry.ReadLink, resultsGraph, entryResource, entryType);
+            var navigableProperties = WriteNavigationLinks(entryWriter, entry.ReadLink, resultsGraph, entryResource, entryType);
+            if (_writerSettings.Version == null || _writerSettings.Version >= ODataVersion.V3)
+            {
+                entry.AssociationLinks = MakeAssociationLinks(entry.ReadLink, navigableProperties);
+            }
             entryWriter.WriteEnd();
             entryWriter.Flush();
         }
@@ -236,17 +240,27 @@ namespace ODataSparqlLib
             return entry;
         }
 
-        private void WriteNavigationLinks(ODataWriter entryWriter, Uri entryLink, IGraph resultsGraph, string entryResource, string entryType)
+        private IEnumerable<ODataAssociationLink> MakeAssociationLinks(Uri entryLink, IEnumerable<PropertyInfo> navigableProperties)
         {
-                        var subject = resultsGraph.CreateUriNode(UriFactory.Create(entryResource));
+            return navigableProperties.Select(p => new ODataAssociationLink
+                {
+                    Name=p.Name,
+                    Url = new Uri(entryLink + "/$links/" + p.Name)
+                });
+        }
 
+        private List<PropertyInfo> WriteNavigationLinks(ODataWriter entryWriter, Uri entryLink, IGraph resultsGraph,
+                                                        string entryResource, string entryType)
+        {
+            var subject = resultsGraph.CreateUriNode(UriFactory.Create(entryResource));
+            var navigableProperties = new List<PropertyInfo>();
             foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
             {
                 var predicate = resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri));
                 List<Triple> matches = assocMap.IsInverse
-                                    ? resultsGraph.GetTriplesWithPredicateObject(predicate, subject).ToList()
-                                    : resultsGraph.GetTriplesWithSubjectPredicate(subject, predicate).ToList();
-                if (matches.Count > 0)
+                                           ? resultsGraph.GetTriplesWithPredicateObject(predicate, subject).ToList()
+                                           : resultsGraph.GetTriplesWithSubjectPredicate(subject, predicate).ToList();
+                if (matches.Any(t => t.Object is UriNode)) // Ignore literal and blank nodes as these cannot be entities
                 {
                     var navLink = new ODataNavigationLink
                         {
@@ -256,8 +270,10 @@ namespace ODataSparqlLib
                         };
                     entryWriter.WriteStart(navLink);
                     entryWriter.WriteEnd();
+                    navigableProperties.Add(assocMap);
                 }
             }
+            return navigableProperties;
         }
 
 
