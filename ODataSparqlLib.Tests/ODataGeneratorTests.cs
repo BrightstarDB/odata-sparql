@@ -43,12 +43,14 @@ namespace ODataSparqlLib.Tests
             testGraph.Assert(film,
                              testGraph.CreateUriNode(UriFactory.Create("http://xmlns.com/foaf/0.1/name")),
                              testGraph.CreateLiteralNode("Un Chien Andalou"));
+            var mockRequest = new Mock<IODataRequestMessage>();
+            mockRequest.Setup(m => m.Url).Returns(new Uri("http://example.org/odata/Films('Un_Chien_Andalou')"));
             var mock = new Mock<IODataResponseMessage>();
             var mockStream = new MemoryStream();
             //mock.Setup(m => m.Url).Returns(new Uri("http://example.org/odata/Films('Un_Chien_Andalou')"));
             //mock.Setup(m => m.Method).Returns("GET");
             mock.Setup(m => m.GetStream()).Returns(mockStream);
-            var generator = new ODataFeedGenerator(mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings{Indent = true});
+            var generator = new ODataFeedGenerator(mockRequest.Object, mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings{Indent = true});
             generator.CreateEntryFromGraph(testGraph, film.Uri.ToString(), "DBPedia.Film");
             mockStream.Seek(0, SeekOrigin.Begin);
             var streamXml = XDocument.Load(mockStream);
@@ -76,10 +78,12 @@ namespace ODataSparqlLib.Tests
             var director = testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/resource/Luis_Bunuel"));
             testGraph.Assert(director, rdfType, testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/ontology/Person")));
             testGraph.Assert(film, testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/property/director")), director);
+            var mockRequest = new Mock<IODataRequestMessage>();
+            mockRequest.Setup(m => m.Url).Returns(new Uri("http://example.org/odata/Films('Un_Chien_Andalou')"));
             var mock = new Mock<IODataResponseMessage>();
             var mockStream = new MemoryStream();
             mock.Setup(m => m.GetStream()).Returns(mockStream);
-            var generator = new ODataFeedGenerator(mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings { Indent = true });
+            var generator = new ODataFeedGenerator(mockRequest.Object, mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings { Indent = true });
             generator.CreateEntryFromGraph(testGraph, film.Uri.ToString(), "DBPedia.Film");
             mockStream.Seek(0, SeekOrigin.Begin);
             var streamXml = XDocument.Load(mockStream);

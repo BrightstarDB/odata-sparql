@@ -14,13 +14,17 @@ namespace ODataSparqlLib
         private readonly SparqlMap _map;
         private SparqlModel _sparqlModel;
         private readonly string _defaultLanguageCode;
+        private readonly int _maxPageSize;
+
+        public const int DefaultMaxPageSize = 100;
 
         public SparqlModel SparqlQueryModel { get { return _sparqlModel; } }
 
-        public SparqlGenerator(SparqlMap map, string defaultLanguageCode= "")
+        public SparqlGenerator(SparqlMap map, string defaultLanguageCode= "", int maxPageSize = DefaultMaxPageSize)
         {
             _map = map;
             _defaultLanguageCode = defaultLanguageCode;
+            _maxPageSize = maxPageSize;
         }
 
         public void ProcessQuery(QueryDescriptorQueryNode query)
@@ -56,6 +60,13 @@ namespace ODataSparqlLib
                     break;
                 default:
                     throw new NotImplementedException("No processing implemented for " + query.Query.Kind);
+            }
+
+            // Apply page size limit
+            if (!_sparqlModel.Limit.HasValue || _sparqlModel.Limit.Value > _maxPageSize)
+            {
+                _sparqlModel.OriginalLimit = _sparqlModel.Limit;
+                _sparqlModel.Limit = _maxPageSize;
             }
         }
 

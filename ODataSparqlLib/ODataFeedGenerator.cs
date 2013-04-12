@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.Data.Edm;
 using Microsoft.Data.OData;
@@ -15,7 +16,8 @@ namespace ODataSparqlLib
     /// </summary>
     public class ODataFeedGenerator
     {
-        private readonly IODataResponseMessage _request;
+        private readonly IODataRequestMessage _request;
+        private readonly IODataResponseMessage _response;
         private readonly SparqlMap _map;
         private readonly string _baseUri;
         private readonly ODataMessageWriterSettings _writerSettings;
@@ -23,13 +25,15 @@ namespace ODataSparqlLib
         /// <summary>
         /// Create a new feed generator
         /// </summary>
-        /// <param name="requestMessage">The OData response message to be populated by the generator</param>
+        /// <param name="requestMessage">The OData request message that was received</param>
+        /// <param name="responseMessage">The OData response message to be populated by the generator</param>
         /// <param name="entityMap">The map to use to map RDF URIs to OData types and properties</param>
         /// <param name="baseUri">The base URI for the OData feed</param>
         /// <param name="messageWriterSettings">Additional settings to apply to the generated OData output</param>
-        public ODataFeedGenerator(IODataResponseMessage requestMessage, SparqlMap entityMap, string baseUri, ODataMessageWriterSettings messageWriterSettings)
+        public ODataFeedGenerator(IODataRequestMessage requestMessage, IODataResponseMessage responseMessage, SparqlMap entityMap, string baseUri, ODataMessageWriterSettings messageWriterSettings)
         {
             _request = requestMessage;
+            _response = responseMessage;
             _map = entityMap;
             _baseUri = baseUri;
             _writerSettings = messageWriterSettings;
@@ -40,9 +44,11 @@ namespace ODataSparqlLib
         /// </summary>
         /// <param name="resultsGraph">The RDF graph containing the SPARQL results</param>
         /// <param name="entityType">The fully qualified domain name for the type of entity to be written</param>
-        public void CreateFeedFromGraph(IGraph resultsGraph, string entityType, SparqlModel originalQueryModel = null)
+        /// <param name="resultsCount">The count of the total number of results that the server can provide</param>
+        /// <param name="originalQueryModel">The SPARQL query that was executed to generate this graph</param>
+        public void CreateFeedFromGraph(IGraph resultsGraph, string entityType, int resultsCount, SparqlModel originalQueryModel = null)
         {
-            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
+            var msgWriter = new ODataMessageWriter(_response, _writerSettings, _map.Model);
             var feedWriter = msgWriter.CreateODataFeedWriter();
             var entries = new List<ODataEntry>();
 
@@ -88,6 +94,10 @@ namespace ODataSparqlLib
             {
                 feed.Count = entries.Count;
             }
+            if (originalQueryModel != null)
+            {
+                feed.NextPageLink = GetNextPageLink(originalQueryModel);
+            }
             feedWriter.WriteStart(feed);
             foreach (var entry in entries)
             {
@@ -96,6 +106,31 @@ namespace ODataSparqlLib
             }
             feedWriter.WriteEnd();
             feedWriter.Flush();
+        }
+
+        private Uri GetNextPageLink(SparqlModel originalQueryModel)
+        {
+            if (!originalQueryModel.Limit.HasValue)
+            {
+                // No limit in the original query so there should be no next page
+                return null;
+            }
+            if (!originalQueryModel.OriginalLimit.HasValue ||
+                originalQueryModel.OriginalLimit.Value > originalQueryModel.Limit.Value)
+            {
+                // We need a next page link
+                var thisPageLink = _request.Url.ToString();
+                var queryParams = System.Web.HttpUtility.ParseQueryString(_request.Url.Query);
+                int nextPageStart = originalQueryModel.Offset.HasValue
+                                           ? originalQueryModel.Offset.Value + originalQueryModel.Limit.Value
+                                           : originalQueryModel.Limit.Value;
+                queryParams["$skip"] = nextPageStart.ToString(CultureInfo.InvariantCulture);
+                string updatedQuery = "?" + String.Join("&",
+                                                  queryParams.AllKeys.Select(
+                                                      k => String.Format("{0}={1}", k, queryParams[k])));
+                return new Uri(_request.Url, updatedQuery);
+            }
+            return null;
         }
 
         public void CreateFeedFromResultSet(SparqlResultSet resultSet)
@@ -111,7 +146,7 @@ namespace ODataSparqlLib
         /// <param name="entryType">The fully qualified name of the type of entity that the RDF resource is to be converted to</param>
         public void CreateEntryFromGraph(IGraph resultsGraph, string entryResource, string entryType)
         {
-            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
+            var msgWriter = new ODataMessageWriter(_response, _writerSettings, _map.Model);
             var entryWriter = msgWriter.CreateODataEntryWriter();
             var entry = CreateODataEntry(resultsGraph, entryResource, entryType);
             entryWriter.WriteStart(entry);
@@ -355,7 +390,7 @@ namespace ODataSparqlLib
 
         public void WriteServiceDocument()
         {
-            var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
+            var msgWriter = new ODataMessageWriter(_response, _writerSettings, _map.Model);
             var collections = new List<ODataResourceCollectionInfo>();
             foreach (
                 var entityContainer in

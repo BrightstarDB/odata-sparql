@@ -66,5 +66,12 @@ namespace ODataSparqlLib
             get { return (string) this["defaultGraphUri"]; }
             set { this["defaultGraphUri"] = value; }
         }
+
+        [ConfigurationProperty("maxPageSize", DefaultValue = SparqlGenerator.DefaultMaxPageSize)]
+        public int MaxPageSize
+        {
+            get { return (int) this["maxPageSize"]; }
+            set { this["maxPageSize"] = value; }
+        }
     }
 }

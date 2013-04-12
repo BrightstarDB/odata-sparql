@@ -25,6 +25,15 @@ namespace ODataSparqlLib
         public bool IsDescribe { get; set; }
         public string DescribeResource { get; private set; }
         public int? Offset { get; set; }
+
+        /// <summary>
+        /// Get / set the limit value originally provided in the OData query
+        /// </summary>
+        public int? OriginalLimit { get; set; }
+
+        /// <summary>
+        /// Get / set the actual limit used in the SPARQL query after server-side page limit has been applied
+        /// </summary>
         public int? Limit { get; set; }
         public ISparqlOrdering Ordering { get; set; }
         public GraphPattern CurrentGraphPattern { get; private set; }
@@ -103,6 +112,19 @@ namespace ODataSparqlLib
             return queryBuilder.ToString();
         }
 
+        public string GetSparqlCountQuery()
+        {
+            if (SelectVariables.Count == 1)
+            {
+                var queryBuilder = new StringBuilder();
+                queryBuilder.Append("SELECT COUNT(?" + SelectVariables[0] + ") WHERE {");
+                queryBuilder.Append(RootGraphPattern.GetSparqlRepresentation());
+                queryBuilder.Append("}");
+                return queryBuilder.ToString();
+            }
+            throw new NotImplementedException("Not implemented support for doing a count on a multi-variable query yet");
+        }
+
         public void Execute(SparqlRemoteEndpoint endpoint, ODataFeedGenerator handler)
         {
             if (IsDescribe)
@@ -123,10 +145,18 @@ namespace ODataSparqlLib
                             throw new Exception(
                                 "Cannot create an entity feed from a SPARQL query with multiple DESCRIBE bindings");
                         }
+                        string countQuery = GetSparqlCountQuery();
+                        var countResults = endpoint.QueryWithResultSet(countQuery);
+                        var firstResult = countResults.Results.FirstOrDefault();
+                        int resultsCount = 0;
+                        if (firstResult != null)
+                        {
+                            resultsCount = Int32.Parse((firstResult[0] as ILiteralNode).Value);
+                        }
                         var selectVarInfo = VariableType[SelectVariables[0]];
                         if (selectVarInfo.IsCollection)
                         {
-                            handler.CreateFeedFromGraph(resultsGraph, selectVarInfo.EntityType, this);
+                            handler.CreateFeedFromGraph(resultsGraph, selectVarInfo.EntityType, resultsCount, this);
                         }
                         else
                         {

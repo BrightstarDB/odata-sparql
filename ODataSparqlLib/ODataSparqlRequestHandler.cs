@@ -17,7 +17,7 @@ namespace ODataSparqlLib
 
         public void ProcessRequest(HttpContext context, Uri serviceBaseUri)
         {
-            var sparqlGenerator = new SparqlGenerator(_config.Map);
+            var sparqlGenerator = new SparqlGenerator(_config.Map, _config.DefaultLanguageCode, _config.MaxPageSize);
 
             var messageWriterSettings = new ODataMessageWriterSettings(_config.BaseODataWriterSettings)
                 {
@@ -40,7 +40,8 @@ namespace ODataSparqlLib
                 var responseMessage = new HttpDataResponseMessage(context.Response);
                 context.Response.ContentType = "application/xml";
                 context.Response.ContentEncoding = System.Text.Encoding.UTF8;
-                var feedGenerator = new ODataFeedGenerator(responseMessage, _config.Map, serviceBaseUri.ToString(),
+                var feedGenerator = new ODataFeedGenerator(requestMessage, responseMessage,
+                                                           _config.Map, serviceBaseUri.ToString(),
                                                            messageWriterSettings);
                 feedGenerator.WriteServiceDocument();
             }
@@ -64,6 +65,7 @@ namespace ODataSparqlLib
                 sparqlGenerator.ProcessQuery(parsedQuery);
                 var responseMessage = new HttpDataResponseMessage(context.Response);
                 var feedGenerator = new ODataFeedGenerator(
+                    requestMessage,
                     responseMessage,
                     _config.Map,
                     serviceBaseUri.ToString(),

@@ -19,9 +19,30 @@ namespace ODataSparqlLib
         /// </summary>
         public string MetadataPath { get; private set; }
 
+        /// <summary>
+        /// Get the data model for the OData endpoint
+        /// </summary>
         public IEdmModel Model { get { return Map.Model; } }
+
+        /// <summary>
+        /// Get the SPARQL endpoint to be queried
+        /// </summary>
         public SparqlRemoteEndpoint SparqlEndpoint { get; private set; }
+
+        /// <summary>
+        /// Get the options for the OData writer
+        /// </summary>
         public ODataMessageWriterSettings BaseODataWriterSettings { get; private set; }
+
+        /// <summary>
+        /// Get the maximum number of entries to retrieve from the SPARQL endpoint per request.
+        /// </summary>
+        public int MaxPageSize { get; private set; }
+
+        /// <summary>
+        /// Get the language code to apply when filtering string values
+        /// </summary>
+        public string DefaultLanguageCode { get; private set; }
 
         public ODataSparqlServiceSettings(string name, HttpServerUtility server)
         {
@@ -33,6 +54,8 @@ namespace ODataSparqlLib
             ConfigureWriterSettings(serviceConfiguration);
             var endpoint = FindEndpointConfiguration(name, serviceConfiguration);
             ReadEndpointMetadata(endpoint);
+            MaxPageSize = endpoint.MaxPageSize;
+            DefaultLanguageCode = endpoint.DefaultLanguage;
             SparqlEndpoint = new SparqlRemoteEndpoint(new Uri(endpoint.Address), endpoint.DefaultGraphUri)
             {
                 Timeout = 60000,
