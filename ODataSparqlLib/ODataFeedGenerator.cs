@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.Edm;
 using Microsoft.Data.OData;
+using Microsoft.Data.OData.Atom;
 using VDS.RDF;
 using VDS.RDF.Nodes;
 using VDS.RDF.Query;
@@ -114,6 +115,7 @@ namespace ODataSparqlLib
             var entryWriter = msgWriter.CreateODataEntryWriter();
             var entry = CreateODataEntry(resultsGraph, entryResource, entryType);
             entryWriter.WriteStart(entry);
+            WriteNavigationLinks(entryWriter, entry.ReadLink, resultsGraph, entryResource, entryType);
             entryWriter.WriteEnd();
             entryWriter.Flush();
         }
@@ -162,21 +164,22 @@ namespace ODataSparqlLib
                 }
             }
 
-            if (_writerSettings.Version >= ODataVersion.V3)
+            
+
+            if (_writerSettings.Version == null ||  _writerSettings.Version >= ODataVersion.V3)
             {
                 var associationLinks = new List<ODataAssociationLink>();
                 foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
                 {
+                    var predicate = resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri));
                     bool hasMatch = false;
                     if (assocMap.IsInverse)
                     {
-                        hasMatch = resultsGraph.GetTriplesWithPredicateObject(
-                            resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri)), subject).Any();
+                        hasMatch = resultsGraph.GetTriplesWithPredicateObject(predicate, subject).Any();
                     }
                     else
                     {
-                        hasMatch = resultsGraph.GetTriplesWithSubjectPredicate(
-                            subject, resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri))).Any();
+                        hasMatch = resultsGraph.GetTriplesWithSubjectPredicate(subject, predicate).Any();
                     }
                     // TODO: May need to be more specific here to catch inverse/forward versions of the same
                     // RDF property being mapped to two different OData properties (e.g. broader and narrower on a category)
@@ -187,7 +190,7 @@ namespace ODataSparqlLib
                         associationLinks.Add(new ODataAssociationLink
                             {
                                 Name = assocMap.Name,
-                                Url = new Uri(odataLink + "/" + assocMap.Name)
+                                Url = new Uri(odataLink + "/$links/" + assocMap.Name)
                             });
                     }
                 }
@@ -196,6 +199,30 @@ namespace ODataSparqlLib
 
             entry.Properties = properties;
             return entry;
+        }
+
+        private void WriteNavigationLinks(ODataWriter entryWriter, Uri entryLink, IGraph resultsGraph, string entryResource, string entryType)
+        {
+                        var subject = resultsGraph.CreateUriNode(UriFactory.Create(entryResource));
+
+            foreach (var assocMap in _map.GetAssociationPropertyMappings(entryType))
+            {
+                var predicate = resultsGraph.CreateUriNode(UriFactory.Create(assocMap.Uri));
+                List<Triple> matches = assocMap.IsInverse
+                                    ? resultsGraph.GetTriplesWithPredicateObject(predicate, subject).ToList()
+                                    : resultsGraph.GetTriplesWithSubjectPredicate(subject, predicate).ToList();
+                if (matches.Count > 0)
+                {
+                    var navLink = new ODataNavigationLink
+                        {
+                            IsCollection = assocMap.PropertyType.IsCollection(),
+                            Name = assocMap.Name,
+                            Url = new Uri(entryLink + "/" + assocMap.Name)
+                        };
+                    entryWriter.WriteStart(navLink);
+                    entryWriter.WriteEnd();
+                }
+            }
         }
 
 
@@ -329,13 +356,19 @@ namespace ODataSparqlLib
         public void WriteServiceDocument()
         {
             var msgWriter = new ODataMessageWriter(_request, _writerSettings, _map.Model);
-            var collections = (from entityContainer in _map.Model.EntityContainers()
-                               where _map.Model.IsDefaultEntityContainer(entityContainer)
-                               from entitySet in entityContainer.EntitySets()
-                               select new ODataResourceCollectionInfo
-                                   {
-                                       Url = new Uri(entitySet.Name, UriKind.Relative)
-                                   }).ToList();
+            var collections = new List<ODataResourceCollectionInfo>();
+            foreach (
+                var entityContainer in
+                    _map.Model.EntityContainers().Where(ec => _map.Model.IsDefaultEntityContainer(ec)))
+            {
+                foreach (var es in entityContainer.EntitySets())
+                {
+                    var collectionInfo = new ODataResourceCollectionInfo {Url = new Uri(es.Name, UriKind.Relative)};
+                    var metadata = new AtomResourceCollectionMetadata {Title = es.Name};
+                    collectionInfo.SetAnnotation(metadata);
+                    collections.Add(collectionInfo);
+                }
+            }
             var workspace = new ODataWorkspace {Collections = collections};
             msgWriter.WriteServiceDocument(workspace);
         }

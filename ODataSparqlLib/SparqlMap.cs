@@ -31,7 +31,7 @@ namespace ODataSparqlLib
             _defaultPropertyNamepsace = defaultPropertyNamespace ?? defaultTypeNamespace;
             _defaultPropertyNameMapping = propertyNameMapping.HasValue ? propertyNameMapping.Value : typeNameMapping;
 
-            using (var edmxStream = new FileStream(edmxPath, FileMode.Open))
+            using (var edmxStream = new FileStream(edmxPath, FileMode.Open, FileAccess.Read))
             {
                 IEdmModel model;
                 IEnumerable<EdmError> errors;
@@ -378,7 +378,8 @@ namespace ODataSparqlLib
                         {
                             Name = navigationProperty.Name,
                             Uri = propertyMapping.Uri,
-                            IsInverse = propertyMapping.IsInverse
+                            IsInverse = propertyMapping.IsInverse,
+                            PropertyType = navigationProperty.Type
                         };
                 }
             }

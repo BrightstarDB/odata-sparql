@@ -27,8 +27,9 @@ namespace ODataSparqlLib.Tests
                 Microsoft.Data.Edm.Csdl.EdmxReader.TryParse(new XmlTextReader(edmxStream), out _dbpediaModel,
                                                             out errors);
             }
-            _dbpediaMap = new SparqlMap("dbpedia.metadata", "http://dbpedia.org/",
-                NameMapping.Unchanged);
+            _dbpediaMap = new SparqlMap("dbpedia.metadata",
+                "http://dbpedia.org/ontology/", NameMapping.UpperCamelCase,
+                "http://dbpedia.org/property/", NameMapping.LowerCamelCase);
         }
 
         [TestMethod]
@@ -58,6 +59,34 @@ namespace ODataSparqlLib.Tests
             XNamespace atom = "http://www.w3.org/2005/Atom";
             Assert.AreEqual("http://example.org/odata/Films('Un_Chien_Andalou')",
                 (string)streamXml.Root.Element(atom+"id"));
+        }
+
+        [TestMethod]
+        public void TestCreateAssociationLinks()
+        {
+            var testGraph = new Graph {BaseUri = new Uri("http://dbpedia.org/resource/")};
+            var film = testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/resource/Un_Chien_Andalou"));
+            var rdfType = testGraph.CreateUriNode(UriFactory.Create("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
+            testGraph.Assert(film,
+                             rdfType,
+                             testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/ontology/Film")));
+            testGraph.Assert(film,
+                             testGraph.CreateUriNode(UriFactory.Create("http://xmlns.com/foaf/0.1/name")),
+                             testGraph.CreateLiteralNode("Un Chien Andalou"));
+            var director = testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/resource/Luis_Bunuel"));
+            testGraph.Assert(director, rdfType, testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/ontology/Person")));
+            testGraph.Assert(film, testGraph.CreateUriNode(UriFactory.Create("http://dbpedia.org/property/director")), director);
+            var mock = new Mock<IODataResponseMessage>();
+            var mockStream = new MemoryStream();
+            mock.Setup(m => m.GetStream()).Returns(mockStream);
+            var generator = new ODataFeedGenerator(mock.Object, _dbpediaMap, "http://example.org/odata/", new ODataMessageWriterSettings { Indent = true });
+            generator.CreateEntryFromGraph(testGraph, film.Uri.ToString(), "DBPedia.Film");
+            mockStream.Seek(0, SeekOrigin.Begin);
+            var streamXml = XDocument.Load(mockStream);
+            Assert.IsNotNull(streamXml);
+            Assert.IsNotNull(streamXml.Root);
+            Assert.AreEqual(XName.Get("entry", "http://www.w3.org/2005/Atom"), streamXml.Root.Name);
+            Console.WriteLine(streamXml.ToString());
         }
     }
 }

@@ -38,6 +38,8 @@ namespace ODataSparqlLib
             {
                 // We need to respond with the service document
                 var responseMessage = new HttpDataResponseMessage(context.Response);
+                context.Response.ContentType = "application/xml";
+                context.Response.ContentEncoding = System.Text.Encoding.UTF8;
                 var feedGenerator = new ODataFeedGenerator(responseMessage, _config.Map, serviceBaseUri.ToString(),
                                                            messageWriterSettings);
                 feedGenerator.WriteServiceDocument();
@@ -51,10 +53,7 @@ namespace ODataSparqlLib
             else if (metadataUri.Equals(context.Request.Url))
             {
                 context.Response.ContentType = "application/xml";
-                using (var inputStream = File.OpenRead(_config.MetadataPath))
-                {
-                    inputStream.CopyTo(context.Response.OutputStream);
-                }
+                context.Response.WriteFile(_config.MetadataPath);
             }
             else
             {

@@ -57,16 +57,17 @@ namespace ODataSparqlLib.Tests
                 var feedGenerator = new ODataFeedGenerator(mockMessage.Object, _dbpediaMap, _odataBase, new ODataMessageWriterSettings{Indent = true});
             sparqlGenerator.SparqlQueryModel.Execute(_sparqlEndpoint, feedGenerator);
             outputStream.Seek(0, SeekOrigin.Begin);
-            var validator= new XPathValidator(outputStream);
+            var validator = new XPathValidator(outputStream);
             validator.AddNamespace("atom", "http://www.w3.org/2005/Atom");
             validator.AddNamespace("d", "http://schemas.microsoft.com/ado/2007/08/dataservices");
             validator.AddNamespace("m", "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata");
+            Console.WriteLine(validator.ToString());
             validator.AssertRoot("atom:entry");
             validator.AssertXPathValue("/atom:entry/atom:id", "http://example.org/odata/Films('Un_Chien_Andalou')");
             validator.AssertXPathValue("/atom:entry/atom:title", "");
             validator.AssertXPathValue("/atom:entry/atom:content/m:properties/d:Name", "Un Chien Andalou");
             validator.AssertXPathValue("/atom:entry/atom:content/m:properties/d:Runtime", "960.0");
-            Console.WriteLine(validator.ToString());
+            validator.AssertXPathValue("/atom:entry/atom:link[@rel='http://schemas.microsoft.com/ado/2007/08/dataservices/related/Director']/@href", "http://example.org/odata/Films('Un_Chien_Andalou')/Director");
         }
 
         [TestMethod]
