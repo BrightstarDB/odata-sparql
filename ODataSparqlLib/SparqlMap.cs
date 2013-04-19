@@ -255,6 +255,11 @@ namespace ODataSparqlLib
             return ret.HasValue ? ret.Value : defaultValue;
         }
 
+        public string GetUriForProperty(IEdmEntityType entityType, string propertyName)
+        {
+            return GetUriForProperty(entityType.FullName(), propertyName);
+        }
+
         public string GetUriForProperty(string qualifiedTypeName, string propertyName)
         {
             string key = qualifiedTypeName + "." + propertyName;

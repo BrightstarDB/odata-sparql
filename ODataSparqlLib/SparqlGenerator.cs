@@ -20,6 +20,8 @@ namespace ODataSparqlLib
 
         public SparqlModel SparqlQueryModel { get { return _sparqlModel; } }
 
+        private string _entitySetVariable;
+
         public SparqlGenerator(SparqlMap map, string defaultLanguageCode= "", int maxPageSize = DefaultMaxPageSize)
         {
             _map = map;
@@ -41,6 +43,7 @@ namespace ODataSparqlLib
                 case QueryNodeKind.Filter:
                     var entityType = (query.Query as FilterQueryNode).ItemType;
                     var instances = AssertInstancesVariable(entityType);
+                    _entitySetVariable = instances;
                     ProcessFilter(query.Query as FilterQueryNode);
                     _sparqlModel.AddSelectVariable(instances, entityType.FullName(), true);
                     _sparqlModel.IsDescribe = true;
@@ -132,7 +135,7 @@ namespace ODataSparqlLib
 
         private object ProcessNode(NavigationPropertyNode navigation)
         {
-            var source = ProcessNode(navigation.Source);
+            var source = navigation.Source == null ? _entitySetVariable : ProcessNode(navigation.Source);
             if (source != null)
             {
                 IPatternItem sourcePatternItem =
@@ -462,10 +465,48 @@ namespace ODataSparqlLib
 
         private object ProcessNode(PropertyAccessQueryNode propertyAccessQueryNode)
         {
-            var srcVariable = AssertInstancesVariable(propertyAccessQueryNode.Source.TypeReference);
-            var propertyUri = _map.GetUriForProperty(propertyAccessQueryNode.Source.TypeReference.FullName(),
-                                                     propertyAccessQueryNode.Property.Name);
-            return "?" + AssertPropertyAccessVariable(srcVariable, propertyUri);
+            string srcVariable;
+
+            if (propertyAccessQueryNode.Source is NavigationPropertyNode)
+            {
+                srcVariable = ProcessNode(propertyAccessQueryNode.Source as NavigationPropertyNode).ToString();
+            }
+            else
+            {
+                srcVariable = AssertInstancesVariable(propertyAccessQueryNode.Source.TypeReference);
+            }
+            var declType = propertyAccessQueryNode.Property.DeclaringType as IEdmEntityType;
+            if (declType == null)
+            {
+                throw new NotImplementedException("Cannot handle property access on declaring type " +
+                                                  propertyAccessQueryNode.Property.DeclaringType);
+            }
+            var propertyUri = _map.GetUriForProperty(
+                declType,
+                propertyAccessQueryNode.Property.Name);
+            if (propertyUri != null)
+            {
+                return "?" + AssertPropertyAccessVariable(srcVariable, propertyUri);
+            }
+            string identifierPrefix;
+            if (_map.TryGetIdentifierPrefixForProperty(declType.FullName(), propertyAccessQueryNode.Property.Name,
+                                                       out identifierPrefix))
+            {
+                return new VariableIdentifierBinding(srcVariable, identifierPrefix);
+            }
+            throw new NotImplementedException(
+               String.Format("Cannot handle property access for {0}.{1}", propertyAccessQueryNode.TypeReference.FullName(), propertyAccessQueryNode.Property.Name));
+        }
+
+        class VariableIdentifierBinding
+        {
+            public string VariableName { get; set; }
+            public string IdentifierPrefix { get; set; }
+            public VariableIdentifierBinding(string srcVariable, string identifierPrefix)
+            {
+                VariableName = srcVariable;
+                IdentifierPrefix = identifierPrefix;
+            }
         }
 
         private string AssertInstancesVariable(IEdmTypeReference typeReference)
@@ -542,6 +583,31 @@ namespace ODataSparqlLib
             var right = binaryOperatorNode.Right is ConstantQueryNode
                             ? MakeSparqlConstant((binaryOperatorNode.Right as ConstantQueryNode).Value)
                             : ProcessNode(binaryOperatorNode.Right);
+
+            if (left is VariableIdentifierBinding)
+            {
+                if (binaryOperatorNode.Right is ConstantQueryNode)
+                {
+                    var constantValue = (binaryOperatorNode.Right as ConstantQueryNode).Value.ToString();
+                    var uri = (left as VariableIdentifierBinding).IdentifierPrefix + constantValue;
+                    switch (binaryOperatorNode.OperatorKind)
+                    {
+                        case BinaryOperatorKind.Equal:
+                            return String.Format("sameTerm(?{0}, <{1}>)",
+                                                 (left as VariableIdentifierBinding).VariableName, uri);
+                        case BinaryOperatorKind.NotEqual:
+                            return String.Format("!(sameTerm(?{0}, <{1}>)",
+                                                 (left as VariableIdentifierBinding).VariableName,
+                                                 uri);
+                        default:
+                            throw new NotImplementedException("No support for operator " +
+                                                              binaryOperatorNode.OperatorKind +
+                                                              " over a resource identifier property.");
+                    }
+                }
+                throw new NotImplementedException("Identifier properties can only be compared to a constant value");
+            }
+
             switch (binaryOperatorNode.OperatorKind)
             {
                 // Logical operators

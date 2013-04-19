@@ -73,11 +73,11 @@
       </Association>
       <Association Name="Person_BirthPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
-        <End Role="BirthPlace" Type="DBPedia.Place" Multiplicity="1"/>
+        <End Role="BirthPlace" Type="DBPedia.Place" Multiplicity="*"/>
       </Association>
       <Association Name="Person_DeathPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
-        <End Role="DeathPlace" Type="DBPedia.Place" Multiplicity="1"/>
+        <End Role="DeathPlace" Type="DBPedia.Place" Multiplicity="*"/>
       </Association>
       <Association Name="Person_RestingPlace">
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>

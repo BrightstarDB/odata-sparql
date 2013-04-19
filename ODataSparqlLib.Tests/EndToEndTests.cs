@@ -51,6 +51,7 @@ namespace ODataSparqlLib.Tests
                 new Uri(odataQuery), new Uri(_odataBase), _dbpediaModel);
             var sparqlGenerator = new SparqlGenerator(_dbpediaMap);
             sparqlGenerator.ProcessQuery(parsedQuery);
+            Console.WriteLine(sparqlGenerator.SparqlQueryModel.GetSparqlRepresentation());
             var mockRequest = new Mock<IODataRequestMessage>();
             mockRequest.Setup(m => m.Url).Returns(new Uri(odataQuery));
             var mockMessage = new Mock<IODataResponseMessage>();
@@ -108,8 +109,8 @@ namespace ODataSparqlLib.Tests
             var validator = GenerateAndExecuteSparql(odataQuery, _dbpediaMap);
             Console.WriteLine(validator.ToString());
             validator.AssertRoot("atom:entry");
-            
         }
+
         [TestMethod]
         public void TestSinglePropertyEq()
         {
@@ -128,6 +129,15 @@ namespace ODataSparqlLib.Tests
             Assert.IsTrue(validator.GetCount("atom:feed/atom:entry") <= 100);
             validator.AssertXPathValue("atom:feed/atom:link[@rel='next']/@href",
                 "http://example.org/odata/Films?$skip=100");
+        }
+
+        [TestMethod]
+        public void TestFilterByRelatedId()
+        {
+            var validator =
+                GenerateAndExecuteSparql("http://example.org/odata/Films?$filter=Director/Id eq 'Orson_Welles'", _dbpediaMap);
+            Console.WriteLine(validator.ToString());
+            validator.AssertRoot("atom:feed");
         }
 
         private XPathValidator GenerateAndExecuteSparql(string odataQuery, SparqlMap sparqlMap, ODataVersion odataVersion=ODataVersion.V3)
