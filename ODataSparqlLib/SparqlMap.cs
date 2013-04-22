@@ -335,7 +335,7 @@ namespace ODataSparqlLib
             foreach (var structuralProperty in edmType.StructuralProperties())
             {
                 PropertyMapping propertyMapping;
-                if (_propertyUriMap.TryGetValue(qualifiedTypeName + "." + structuralProperty.Name, out propertyMapping))
+                if (_propertyUriMap.TryGetValue(structuralProperty.DeclaringType + "." + structuralProperty.Name, out propertyMapping))
                 {
                     if (!String.IsNullOrEmpty(propertyMapping.Uri))
                     {

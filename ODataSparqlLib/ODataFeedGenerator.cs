@@ -200,6 +200,15 @@ namespace ODataSparqlLib
                             };
                         properties.Add(newProperty);
                     }
+                    else if (match.Object is UriNode && propertyMapping.PropertyType.IsPrimitive())
+                    {
+                        var newProperty = new ODataProperty()
+                            {
+                                Name = propertyMapping.Name,
+                                Value = GetValue(match.Object, propertyMapping.PropertyType)
+                            };
+                        properties.Add(newProperty);
+                    }
                 }
             }
 

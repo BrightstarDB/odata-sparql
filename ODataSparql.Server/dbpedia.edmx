@@ -12,6 +12,9 @@
         <Property Name="Id" Type="Edm.String" Nullable="false">
           <ValueAnnotation Term="Sparql.IdentifierPrefix" String="http://dbpedia.org/resource/"/>
         </Property>
+        <Property Name="Depiction" Type="Edm.String" Nullable="true">
+          <ValueAnnotation Term="Sparql.Uri" String="http://xmlns.com/foaf/0.1/depiction"/>
+        </Property>
         <ValueAnnotation Term="Sparql.Uri" String="http://www.w3.org/2002/07/owl#Thing"/>
       </EntityType>
 
@@ -32,6 +35,8 @@
         </Property>
         <Property Name="ImdbId" Type="Edm.String" Nullable="true"/>
         <ValueAnnotation Term="Sparql.Uri" String="http://dbpedia.org/ontology/Film" />
+        <NavigationProperty Name="Starring" Relationship="DBPedia.Film_Starring"
+                            FromRole="Film" ToRole ="Person"/>
       </EntityType>
 
       <!-- http://mappings.dbpedia.org/server/ontology/classes/Person -->
@@ -91,7 +96,10 @@
         <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
         <End Role="Influence" Type="DBPedia.Person" Multiplicity="*"/>
       </Association>
-
+      <Association Name="Film_Starring">
+        <End Role="Film" Type="DBPedia.Film" Multiplicity="*"/>
+        <End Role="Person" Type="DBPedia.Person" Multiplicity="*"/>
+      </Association>
       <EntityContainer Name ="Contents" m:IsDefaultEntityContainer ="true">
         <EntitySet Name="Films" EntityType="DBPedia.Film"/>
         <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
