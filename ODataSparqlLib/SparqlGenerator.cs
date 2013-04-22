@@ -91,6 +91,8 @@ namespace ODataSparqlLib
                     return ProcessTop(queryNode as TopQueryNode);
                 case QueryNodeKind.PropertyAccess:
                     return ProcessNode(queryNode as PropertyAccessQueryNode);
+                case QueryNodeKind.Segment:
+                    return ProcessNode(queryNode as NavigationPropertyNode);
                 default:
                     throw new NotImplementedException("No processing implemented for " + queryNode.Kind);
             }

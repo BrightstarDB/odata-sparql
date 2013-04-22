@@ -102,8 +102,8 @@
         <EntitySet Name="Persons" EntityType="DBPedia.Person"/>
         <EntitySet Name="Places" EntityType="DBPedia.Place"/>
         <EntitySet Name="Works" EntityType="DBPedia.Work"/>
-        <AssociationSet Name="Film_Director" Association="DBPedia.Film_Director">
-          <End Role="Film" EntitySet="Films"/>
+        <AssociationSet Name="Work_Director" Association="DBPedia.Work_Director">
+          <End Role="Work" EntitySet="Works"/>
           <End Role="Director" EntitySet="Persons"/>
         </AssociationSet>
       </EntityContainer>

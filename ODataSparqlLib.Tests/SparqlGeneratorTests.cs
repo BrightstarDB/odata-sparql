@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using Microsoft.Data.Edm;
 using Microsoft.Data.Edm.Validation;
@@ -441,6 +442,54 @@ namespace ODataSparqlLib.Tests
             Assert.AreEqual(@"seconds(?v2) = 22", sparql.RootGraphPattern.FilterExpressions[0]);
         }
 
+        #endregion
+
+        #region Property Access
+        [TestMethod]
+        public void TestPropertyAccessInFilter()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=Director/Name eq 'Woody Allen'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            var nameSelectPattern = sparql.RootGraphPattern.TriplePatterns.FirstOrDefault(
+                tp =>
+                tp.Predicate is UriPatternItem &&
+                (tp.Predicate as UriPatternItem).Uri.Equals("http://xmlns.com/foaf/0.1/name"));
+            Assert.IsNotNull(nameSelectPattern);
+            Assert.IsTrue(nameSelectPattern.Object is VariablePatternItem);
+            var nameVariable = (nameSelectPattern.Object as VariablePatternItem).VariableName;
+            Assert.AreEqual(String.Format("?{0} = 'Woody Allen'", nameVariable), sparql.RootGraphPattern.FilterExpressions[0]);
+        }
+
+        [TestMethod]
+        public void TestPropertyAccessInFilter2()
+        {
+            var sparql = ProcessQuery("http://example.org/odata/Films?$filter=Director/BirthPlace/Abbreviation eq 'NY'");
+            Assert.IsNotNull(sparql);
+            Console.WriteLine(sparql.GetSparqlRepresentation());
+            Assert.AreEqual(1, sparql.RootGraphPattern.FilterExpressions.Count);
+            var placeSelectPattern = sparql.RootGraphPattern.TriplePatterns.FirstOrDefault(
+                tp =>
+                tp.Predicate is UriPatternItem &&
+                (tp.Predicate as UriPatternItem).Uri.Equals("http://dbpedia.org/ontology/birthPlace"));
+            Assert.IsNotNull(placeSelectPattern);
+            Assert.IsTrue(placeSelectPattern.Object is VariablePatternItem);
+            var placeVariable = (placeSelectPattern.Object as VariablePatternItem).VariableName;
+
+            var abbreviationSelectPattern = sparql.RootGraphPattern.TriplePatterns.FirstOrDefault(
+                tp =>
+                tp.Predicate is UriPatternItem &&
+                (tp.Predicate as UriPatternItem).Uri.Equals("http://dbpedia.org/Abbreviation"));
+            Assert.IsNotNull(abbreviationSelectPattern);
+            Assert.IsTrue(abbreviationSelectPattern.Subject is VariablePatternItem);
+            Assert.AreEqual((abbreviationSelectPattern.Subject as VariablePatternItem).VariableName, placeVariable);
+            Assert.IsTrue(abbreviationSelectPattern.Object is VariablePatternItem);
+            var abbreviationVariable = (abbreviationSelectPattern.Object as VariablePatternItem).VariableName;
+
+            Assert.AreEqual(String.Format("?{0} = 'NY'", abbreviationVariable), sparql.RootGraphPattern.FilterExpressions[0]);
+            
+        }
         #endregion
 
         #region Math Functions
